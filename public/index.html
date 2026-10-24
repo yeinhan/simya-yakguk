@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="지금 문 연 약국, 심야·주말·공휴일 약국을 내 주변에서 바로 찾아보세요. 영업시간과 전화 연결까지.">
+<meta name="theme-color" content="#1e9e5e">
+<title>우리동네 약국</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
+<style>
+/* Layout: white public-health look with green accent. Home -> results (map + list; two panes from 900px) -> detail (map + hours) */
+:root {
+  --bg: #f5faf7;
+  --surface: #ffffff;
+  --fg: #22302a;
+  --muted: #56635c;
+  --line: #dcebe2;
+  --accent: #1e9e5e;
+  --accent-ink: #17804b;
+  --accent-soft: #e7f6ee;
+  --warn: #a65800;
+  --warn-soft: #fff1dc;
+  --sun: #fff6e5;
+  --sun-ink: #5c4a26;
+  --off: #8b9892;
+  --me: #2f6fde;
+  --map: #e9f2ec;
+  --map-road: #ffffff;
+  --map-park: #d5ebdd;
+  --map-water: #d3e4f2;
+  --shadow: 0 6px 20px rgba(30, 90, 60, .12);
+  --font-display: "Jua", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #101a15; --surface: #18251e; --fg: #e6f1ea; --muted: #a2b5aa; --line: #2a3d33;
+  --accent: #3fc582; --accent-ink: #6fdca6; --accent-soft: #1b3a2b; --warn: #ffbf7f; --warn-soft: #3d2c1d;
+  --sun: #2f2818; --sun-ink: #e9d4a6; --off: #6f8279; --me: #7fa8ff;
+  --map: #1c2b23; --map-road: #2a3d33; --map-park: #20382b; --map-water: #1d3347;
+  --shadow: 0 6px 20px rgba(0,0,0,.35); color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #101a15; --surface: #18251e; --fg: #e6f1ea; --muted: #a2b5aa; --line: #2a3d33;
+  --accent: #3fc582; --accent-ink: #6fdca6; --accent-soft: #1b3a2b; --warn: #ffbf7f; --warn-soft: #3d2c1d;
+  --sun: #2f2818; --sun-ink: #e9d4a6; --off: #6f8279; --me: #7fa8ff;
+  --map: #1c2b23; --map-road: #2a3d33; --map-park: #20382b; --map-water: #1d3347;
+  --shadow: 0 6px 20px rgba(0,0,0,.35); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--surface); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.55; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--surface); }
+button, input, select, a { font: inherit; }
+button { color: inherit; cursor: pointer; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.disp { font-family: var(--font-display); font-weight: 400; }
+svg { display: block; }
+
+/* top bar */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); }
+.bar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 10px; }
+.brand { display: flex; align-items: center; gap: 8px; font-size: 22px; white-space: nowrap; background: none; border: 0; padding: 4px 0; }
+.bar nav { display: flex; gap: 4px; }
+.bar nav button { white-space: nowrap; background: none; border: 0; padding: 10px 12px; border-radius: 12px; color: var(--muted); font-size: 15px; }
+.bar nav button:hover { background: var(--accent-soft); color: var(--accent-ink); }
+@media (max-width: 640px) { .bar nav .hide-sm { display: none; } }
+
+/* buttons + inputs */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 0 22px; border: 0; border-radius: 20px; background: var(--accent); color: #fff; font-family: var(--font-display); font-size: 18px; text-decoration: none; }
+.btn.soft { background: var(--accent-soft); color: var(--accent-ink); }
+.btn.small { min-height: 44px; border-radius: 16px; font-size: 16px; padding: 0 16px; }
+.searchbox { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 0 8px 0 20px; border-radius: 30px; background: var(--bg); border: 2px solid var(--accent); }
+.searchbox input { flex: 1 1 0; width: 0; min-width: 0; height: 46px; border: 0; background: transparent; color: var(--fg); font-size: 17px; }
+.searchbox input::placeholder { color: var(--muted); }
+.searchbox input:focus { outline: none; }
+.searchbox .go { height: 46px; padding: 0 20px; border: 0; border-radius: 23px; background: var(--accent); color: #fff; font-family: var(--font-display); font-size: 17px; }
+.linkbtn { background: none; border: 0; color: var(--accent-ink); font-size: 15px; padding: 8px 4px; text-decoration: underline; text-underline-offset: 3px; }
+
+/* advanced search panel */
+.adv { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; padding: 14px; border-radius: 20px; background: var(--bg); text-align: left; }
+.adv label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); min-width: 0; }
+.adv select, .adv input[type="date"], .adv input[type="time"] { width: 100%; min-width: 0; height: 44px; padding: 0 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--fg); }
+.adv .check { display: flex; align-items: center; gap: 8px; color: var(--fg); font-size: 15px; }
+.adv .check input { width: 20px; height: 20px; accent-color: var(--accent); }
+
+/* home */
+.home-main { display: grid; justify-items: center; gap: 22px; text-align: center; padding-block: 28px 24px; max-width: 640px; }
+.home-main h1 { margin: 0; font-size: clamp(28px, 7vw, 40px); line-height: 1.3; text-wrap: balance; }
+.home-main p { margin: 0; color: var(--muted); }
+.home-main form { width: 100%; display: grid; gap: 12px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sun { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-radius: 20px; background: var(--sun); color: var(--sun-ink); font-size: 15px; text-align: left; }
+.help { display: grid; gap: 8px; width: 100%; text-align: left; }
+.help h2 { margin: 0; font-size: 18px; }
+.help .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.help button { min-height: 46px; padding: 0 16px; border-radius: 23px; border: 1px solid var(--line); background: var(--surface); font-size: 15px; }
+.help button b { color: var(--accent-ink); font-family: var(--font-display); font-weight: 400; }
+.help button.urgent b { color: var(--warn); }
+.notice { font-size: 13px; color: var(--muted); background: var(--accent-soft); border-radius: 14px; padding: 10px 14px; text-align: left; }
+.notice strong { color: var(--fg); }
+.foot { border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.foot .wrap { padding-block: 18px 28px; display: grid; gap: 4px; }
+
+/* results */
+.tools { background: var(--surface); }
+.tools .wrap { display: grid; gap: 10px; padding-block: 12px; }
+.tools .searchbox { min-height: 52px; }
+.tools .searchbox input { height: 40px; font-size: 16px; }
+.chiprow { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; align-items: center; }
+.chip { flex: none; min-height: 40px; padding: 0 16px; border-radius: 20px; border: 1px solid var(--line); background: var(--surface); font-size: 15px; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+.mapwrap { position: relative; background: var(--map); height: 300px; overflow: hidden; }
+.mapwrap .map { width: 100%; height: 100%; }
+.kpin { background: none; border: 0; padding: 0; cursor: pointer; display: block; line-height: 0; }
+.kme { width: 18px; height: 18px; border-radius: 50%; background: var(--me); border: 3px solid #fff; box-shadow: 0 0 0 8px rgba(43,108,214,.18); }
+.mapwrap .fab { position: absolute; right: 14px; bottom: 14px; width: 50px; height: 50px; border-radius: 25px; border: 0; background: var(--surface); box-shadow: var(--shadow); display: grid; place-items: center; }
+.pin { cursor: pointer; }
+.pin:focus-visible { outline: none; }
+.pin:focus-visible path.body { stroke: var(--fg); stroke-width: 3; }
+.listpane { background: var(--surface); border-radius: 28px 28px 0 0; margin-top: -22px; position: relative; box-shadow: 0 -6px 24px rgba(30, 90, 60, .1); padding: 14px 18px 40px; display: grid; gap: 10px; align-content: start; }
+.grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); justify-self: center; }
+.head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.head h2 { margin: 0; font-size: 21px; }
+.head h2 b { color: var(--accent-ink); font-weight: 400; }
+.head span { font-size: 13px; color: var(--muted); }
+.rows { display: grid; gap: 10px; }
+.item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 20px; background: var(--bg); border: 2px solid transparent; }
+.item.sel { border-color: var(--accent); background: var(--surface); box-shadow: var(--shadow); }
+.item.closed { opacity: .72; }
+.item .main { flex: 1 1 0; min-width: 0; display: grid; gap: 2px; text-align: left; background: none; border: 0; padding: 0; }
+.item .nm { font-size: 18px; }
+.item .meta { font-size: 14px; color: var(--muted); }
+.ok { color: var(--accent-ink); }
+.soon { color: var(--warn); }
+.off { color: var(--off); }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+.tag { font-size: 12.5px; padding: 1px 9px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); }
+.tag.night { background: var(--warn-soft); color: var(--warn); }
+.call { flex: none; width: 52px; height: 52px; border-radius: 26px; background: var(--accent); border: 0; display: grid; place-items: center; }
+.empty { text-align: center; color: var(--muted); padding: 30px 8px; }
+.suggest { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 14px; color: var(--muted); justify-content: center; margin-top: 10px; }
+.suggest button { border: 1px dashed var(--line); background: none; border-radius: 16px; padding: 4px 12px; font-size: 14px; }
+@media (min-width: 900px) {
+  .split { grid-template-columns: 440px minmax(0, 1fr); height: calc(100vh - 170px); min-height: 520px; }
+  .split .listpane { order: 0; margin-top: 0; border-radius: 0; box-shadow: none; overflow-y: auto; border-right: 1px solid var(--line); padding-top: 16px; }
+  .split .mapwrap { order: 1; height: auto; }
+  .grab { display: none; }
+}
+
+/* detail */
+.detail { display: grid; grid-template-columns: minmax(0, 1fr); }
+.detail .mapwrap { height: 300px; }
+.detail .back { position: absolute; left: 14px; top: 14px; width: 48px; height: 48px; border-radius: 24px; border: 0; background: var(--surface); box-shadow: var(--shadow); display: grid; place-items: center; }
+.detail .walk { position: absolute; left: 14px; bottom: 36px; padding: 7px 14px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); font-size: 14px; }
+.detail .walk b { color: var(--accent-ink); font-weight: 400; }
+.sheet { background: var(--surface); border-radius: 28px 28px 0 0; margin-top: -24px; position: relative; padding: 22px 18px 40px; display: grid; gap: 16px; align-content: start; max-width: 720px; width: 100%; justify-self: center; }
+.sheet h1 { margin: 0; font-size: 28px; }
+.pillbig { justify-self: start; font-size: 15px; padding: 5px 14px; border-radius: 16px; background: var(--accent-soft); color: var(--accent-ink); }
+.pillbig.soon { background: var(--warn-soft); color: var(--warn); }
+.pillbig.off { background: var(--bg); color: var(--off); }
+.addr { color: var(--muted); font-size: 15px; }
+.sheet h2 { margin: 0 0 4px; font-size: 19px; }
+.hours { width: 100%; border-collapse: collapse; font-size: 16px; }
+.hours td { padding: 9px 12px; }
+.hours tr.today td { background: var(--accent-soft); color: var(--accent-ink); }
+.hours tr.today td:first-child { border-radius: 12px 0 0 12px; }
+.hours tr.today td:last-child { border-radius: 0 12px 12px 0; }
+.hours td:last-child { text-align: right; }
+.fine { font-size: 13px; color: var(--muted); }
+@media (min-width: 900px) {
+  .detail { grid-template-columns: minmax(0, 1fr) 460px; height: calc(100vh - 62px); min-height: 560px; }
+  .detail .mapwrap { height: auto; }
+  .sheet { margin-top: 0; border-radius: 0; max-width: none; overflow-y: auto; }
+  .detail .walk { bottom: 20px; }
+}
+.toast { position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--surface); padding: 10px 18px; border-radius: 16px; font-size: 15px; z-index: 40; max-width: calc(100% - 32px); }
+@media (prefers-reduced-motion: no-preference) { .item { transition: border-color .15s; } }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <button class="brand disp" id="goHome" type="button" aria-label="처음 화면으로">
+      <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="15" fill="var(--accent)"/><path d="M15 8.5v13M8.5 15h13" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/></svg>
+      우리동네 약국
+    </button>
+    <nav aria-label="바로가기">
+      <button type="button" data-go="open" class="hide-sm">지금 연 약국</button>
+      <button type="button" data-go="late" class="hide-sm">심야약국</button>
+      <button type="button" data-go="weekend" class="hide-sm">주말·공휴일</button>
+      <button type="button" id="helpBtn">도움 전화</button>
+    </nav>
+  </div>
+</header>
+
+<!-- HOME -->
+<div id="home">
+  <div class="wrap home-main">
+    <svg width="168" height="132" viewBox="0 0 168 132" role="img" aria-label="초록 십자가 간판이 있는 동네 약국 그림">
+      <ellipse cx="84" cy="118" rx="76" ry="12" fill="var(--accent-soft)"/>
+      <rect x="34" y="40" width="100" height="78" rx="14" fill="var(--accent-soft)"/>
+      <path d="M26 46 84 14l58 32" fill="none" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="70" y="80" width="28" height="38" rx="6" fill="var(--accent)"/>
+      <rect x="44" y="62" width="20" height="18" rx="4" fill="var(--surface)"/>
+      <rect x="104" y="62" width="20" height="18" rx="4" fill="var(--surface)"/>
+      <circle cx="84" cy="54" r="12" fill="var(--surface)"/>
+      <path d="M84 47.5v13M77.5 54h13" stroke="var(--accent)" stroke-width="3.4" stroke-linecap="round"/>
+      <path d="M144 112c0-14 6-24 14-28-2 12-6 22-14 28z" fill="#7bcb9f"/>
+      <path d="M22 112c0-12-5-20-12-24 2 10 5 18 12 24z" fill="#7bcb9f"/>
+    </svg>
+    <div style="display:grid;gap:8px">
+      <h1 class="disp">어디가 불편하세요?<br>가까운 약국 찾아드릴게요</h1>
+      <p>지금 문 연 곳만 골라서 보여드려요</p>
+    </div>
+    <form id="homeForm" role="search">
+      <label for="hq" class="sr" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">동, 주소, 약국 이름</label>
+      <div class="searchbox">
+        <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="6" fill="none" stroke="var(--accent-ink)" stroke-width="2.2"/><path d="M13 13l5 5" stroke="var(--accent-ink)" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <input id="hq" type="search" placeholder="동 이름을 입력해 보세요 (예: 봉천동)" autocomplete="off">
+        <button class="go" type="submit">찾기</button>
+      </div>
+      <div class="row2">
+        <button class="btn" id="hlocate" type="button">
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 1.5a5.5 5.5 0 0 1 5.5 5.5c0 4-5.5 9.5-5.5 9.5S3.5 11 3.5 7A5.5 5.5 0 0 1 9 1.5z" fill="#fff"/><circle cx="9" cy="7" r="2" fill="var(--accent)"/></svg>
+          내 위치로
+        </button>
+        <button class="btn soft" type="button" data-go="open">지금 연 약국</button>
+      </div>
+      <div><button class="linkbtn" id="homeAdvToggle" type="button" aria-expanded="false" aria-controls="homeAdv">상세검색 (시·구, 날짜·시간)</button></div>
+      <div class="adv" id="homeAdv" hidden></div>
+    </form>
+    <div class="sun" id="homeSun">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="2" y="4" width="18" height="16" rx="5" fill="#e9a23b"/><path d="M2 9h18" stroke="var(--sun)" stroke-width="1.6"/><circle cx="7.5" cy="14" r="1.6" fill="var(--sun)"/><circle cx="14.5" cy="14" r="1.6" fill="var(--sun)"/></svg>
+      <span id="sunText"></span>
+    </div>
+    <section class="help" id="helpSec">
+      <h2 class="disp">도움이 필요할 때 전화하세요</h2>
+      <div class="chips">
+        <button class="urgent" type="button" data-tel="119">응급 <b>119</b></button>
+        <button type="button" data-tel="129">보건복지상담 <b>129</b></button>
+        <button type="button" data-tel="1339">질병관리청 <b>1339</b></button>
+        <button type="button" data-tel="1644-6223">의약품 부작용 신고 <b>1644-6223</b></button>
+      </div>
+      <div class="fine" style="font-size:13px;color:var(--muted)">근처에 문 연 약국이 없으면 편의점에서 해열진통제, 감기약, 소화제, 파스 같은 안전상비의약품을 살 수 있어요.</div>
+    </section>
+    <div class="notice" id="sampleNotice" hidden><strong>예시 데이터로 보는 미리보기예요.</strong> 약국 이름·주소·전화는 가짜예요.</div>
+  </div>
+  <footer class="foot"><div class="wrap"><b class="disp" style="font-size:16px;color:var(--fg)">우리동네 약국</b><span id="dataDate"></span><span>약국 정보 출처: 국립중앙의료원 전국 약국 정보 (공공데이터포털)</span><span>운영시간은 약국 사정으로 바뀔 수 있어요. 방문 전에 전화로 확인하세요.</span></div></footer>
+</div>
+
+<!-- RESULTS -->
+<div id="results" hidden>
+  <div class="tools">
+    <div class="wrap">
+      <form id="searchForm" role="search">
+        <label for="q" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">동, 주소, 약국 이름</label>
+        <div class="searchbox">
+          <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="6" fill="none" stroke="var(--accent-ink)" stroke-width="2.2"/><path d="M13 13l5 5" stroke="var(--accent-ink)" stroke-width="2.2" stroke-linecap="round"/></svg>
+          <input id="q" type="search" placeholder="예: 봉천동" autocomplete="off">
+          <button class="go" type="submit">찾기</button>
+        </div>
+      </form>
+      <div class="chiprow" role="group" aria-label="필터">
+        <button class="chip" data-f="open" aria-pressed="true" type="button">지금 영업중</button>
+        <button class="chip" data-f="late" aria-pressed="false" type="button">심야</button>
+        <button class="chip" data-f="weekend" aria-pressed="false" type="button">주말·공휴일</button>
+        <button class="chip" data-f="always" aria-pressed="false" type="button">연중무휴</button>
+        <button class="chip" id="locate" type="button">내 위치</button>
+        <button class="linkbtn" id="advToggle" type="button" aria-expanded="false" aria-controls="adv" style="flex:none">상세검색</button>
+      </div>
+      <div class="adv" id="adv" hidden></div>
+    </div>
+  </div>
+  <div class="split">
+    <div class="mapwrap" id="mapwrap">
+      <div class="map" id="map" role="region" aria-label="약국 위치 지도"></div>
+      <button class="fab" id="recenter" type="button" aria-label="내 위치로 지도 맞추기">
+        <svg width="22" height="22" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="3" fill="var(--me)"/><circle cx="9" cy="9" r="6.5" fill="none" stroke="var(--me)" stroke-width="1.6"/><path d="M9 0.5v2.5M9 15v2.5M0.5 9h2.5M15 9h2.5" stroke="var(--me)" stroke-width="1.6"/></svg>
+      </button>
+    </div>
+    <section class="listpane" aria-label="약국 목록">
+      <div class="grab"></div>
+      <div class="head"><h2 class="disp" id="count"></h2><span id="when"></span></div>
+      <div class="suggest" id="suggest" hidden></div>
+      <div class="rows" id="rows"></div>
+    </section>
+  </div>
+</div>
+
+<!-- DETAIL -->
+<div id="detail" hidden>
+  <div class="detail">
+    <div class="mapwrap">
+      <div class="map" id="dmap" role="region" aria-label="선택한 약국 위치 지도"></div>
+      <button class="back" id="backBtn" type="button" aria-label="목록으로 돌아가기">
+        <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4l-6 6 6 6" fill="none" stroke="var(--fg)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="walk" id="dwalk"></div>
+    </div>
+    <div class="sheet" id="sheet"></div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
