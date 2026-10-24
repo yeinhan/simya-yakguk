@@ -8,7 +8,9 @@
 //   meta.json                { updatedAt, count, sample }
 import { mkdir, rm, writeFile } from "node:fs/promises";
 
-const KEY = process.env.DATA_GO_KR_KEY;
+// Accept either the Encoding or the Decoding key from data.go.kr (the Encoding one is already %-escaped).
+const raw = (process.env.DATA_GO_KR_KEY || "").trim();
+const KEY = /%[0-9A-Fa-f]{2}/.test(raw) ? decodeURIComponent(raw) : raw;
 if (!KEY) { console.error("DATA_GO_KR_KEY is not set"); process.exit(1); }
 
 const BASE = "https://apis.data.go.kr/B552657/ErmctInsttInfoInqireService/getParmacyListInfoInqire";
