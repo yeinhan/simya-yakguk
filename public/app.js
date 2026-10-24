@@ -69,8 +69,9 @@ const kakaoReady = new Promise(resolve => {
   if (!CFG.kakaoJsKey) return resolve(false);
   const s = document.createElement("script");
   s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(CFG.kakaoJsKey)}&libraries=services&autoload=false`;
-  s.onload = () => kakao.maps.load(() => { kakaoOK = true; resolve(true); });
+  s.onload = () => kakao.maps.load(() => { kakaoOK = true; $("mapNote").hidden = true; resolve(true); });
   s.onerror = () => { mapProblem = "카카오 지도를 불러오지 못했어요 (키 종류, 도메인 등록, 카카오맵 사용 설정을 확인해 주세요)"; resolve(false); };
+  setTimeout(() => { if (!kakaoOK) { mapProblem = "카카오 지도가 응답하지 않아요 (네트워크나 카카오맵 사용 설정을 확인해 주세요)"; resolve(false); } }, 10000);
   document.head.appendChild(s);
 }).then(ok => { if (!ok && !CFG.kakaoJsKey) mapProblem = "지도 키(KAKAO_JS_KEY)가 사이트에 들어 있지 않아요";
   $("mapNote").textContent = ok ? "" : "간이 지도로 표시 중 · " + mapProblem; $("mapNote").hidden = ok;
