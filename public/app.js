@@ -64,15 +64,17 @@ function renderMeta() {
 }
 
 // ---- Kakao (places + map), optional -------------------------------------------------------------
-let kakaoOK = false;
+let kakaoOK = false, mapProblem = "";
 const kakaoReady = new Promise(resolve => {
   if (!CFG.kakaoJsKey) return resolve(false);
   const s = document.createElement("script");
   s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(CFG.kakaoJsKey)}&libraries=services&autoload=false`;
   s.onload = () => kakao.maps.load(() => { kakaoOK = true; resolve(true); });
-  s.onerror = () => resolve(false);
+  s.onerror = () => { mapProblem = "카카오 지도를 불러오지 못했어요 (키 종류, 도메인 등록, 카카오맵 사용 설정을 확인해 주세요)"; resolve(false); };
   document.head.appendChild(s);
-}).then(ok => { if (ok && (view === "results" || view === "detail")) showView(view); return ok; });
+}).then(ok => { if (!ok && !CFG.kakaoJsKey) mapProblem = "지도 키(KAKAO_JS_KEY)가 사이트에 들어 있지 않아요";
+  $("mapNote").textContent = ok ? "" : "간이 지도로 표시 중 · " + mapProblem; $("mapNote").hidden = ok;
+  if (ok && (view === "results" || view === "detail")) showView(view); return ok; });
 
 const FALLBACK_PLACES = { "봉천동": [37.4827, 126.9416], "신림동": [37.4842, 126.9297], "서교동": [37.5530, 126.9190], "홍대": [37.5563, 126.9236], "강남역": [37.4979, 127.0276], "역삼동": [37.5006, 127.0366] };
 async function geocode(q) {
