@@ -135,8 +135,8 @@ function drawMap(id, center, pins, opts = {}) {
   if (opts.me) { const me = proj(opts.me);
     if (opts.route) { const p = proj(opts.route); h += `<path d="M${me.x} ${me.y} V${p.y} H${p.x}" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 11"/>`; }
     h += `<circle cx="${me.x}" cy="${me.y}" r="22" fill="var(--me)" opacity=".14"/><circle cx="${me.x}" cy="${me.y}" r="8" fill="var(--me)" stroke="#fff" stroke-width="3"/>`; }
-  pins.forEach(({ i, st, sel }) => { const p = proj(i); if (p.x < 6 || p.x > 394 || p.y < 14 || p.y > 294) return;
-    const s = sel ? 9 : 6.5, col = !st.open ? "var(--off)" : sel ? "var(--accent)" : "#4fb883";
+  pins.slice(0, 30).forEach(({ i, st, sel }) => { const p = proj(i); if (p.x < 6 || p.x > 394 || p.y < 14 || p.y > 294) return;
+    const s = sel ? 6 : 4, col = !st.open ? "var(--off)" : sel ? "var(--accent)" : "#4fb883";
     h += `<g class="pin" tabindex="0" role="button" data-id="${esc(i.id)}" aria-label="${esc(i.dutyName)}"><path d="${pinPath(p.x, p.y, s)}" fill="${col}" stroke="#fff" stroke-width="${sel ? 2.4 : 1.6}"/>
       <path d="M${p.x} ${p.y - 4.3*s}v${1.8*s}M${p.x - 0.9*s} ${p.y - 3.4*s}h${1.8*s}" stroke="#fff" stroke-width="${0.5*s}" stroke-linecap="round"/></g>`; });
   el.innerHTML = h + "</svg>";
