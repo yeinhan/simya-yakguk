@@ -1,4 +1,4 @@
-// 우리동네 약국: front end. Data comes from data/g/<cell>.json (see scripts/update-data.mjs);
+// 심야약국: front end. Data comes from data/g/<cell>.json (see scripts/update-data.mjs);
 // places and the map come from Kakao when a JavaScript key is configured (config.js), otherwise a plain drawn map is used.
 const CFG = window.APP_CONFIG || {};
 const $ = id => document.getElementById(id);
@@ -262,3 +262,11 @@ document.addEventListener("click", e => {
 document.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.classList?.contains("pin")) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent("click", { bubbles: true })); } });
 moment(); syncAdv(); showView("home");
 setInterval(() => { if (adv.follow) { moment(); syncAdv(); refresh(); } }, 60000);
+
+// Links from the region pages and search engines: /?q=서울특별시 관악구 searches there, &f=open|late|weekend|always picks the filter.
+(function fromURL() {
+  const u = new URLSearchParams(location.search), q = (u.get("q") || "").trim(), f = u.get("f");
+  if (!q) return;
+  setFilters(f === "late" ? ["open", "late"] : ["open", "weekend", "always"].includes(f) ? [f] : ["open"]);
+  $("hq").value = q; showView("results"); runSearch(q);
+})();

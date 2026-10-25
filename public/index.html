@@ -3,9 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="지금 문 연 약국, 심야·주말·공휴일 약국을 내 주변에서 바로 찾아보세요. 영업시간과 전화 연결까지.">
+<title>심야약국 - 지금 문 연 약국 찾기 | 심야·주말·공휴일 약국</title>
+<meta name="description" content="지금 문 연 약국을 내 주변에서 바로 찾아요. 심야약국, 일요일·주말 약국, 공휴일 약국, 공공심야약국까지 전국 약국 2만 5천여 곳의 영업시간을 매일 갱신해요.">
 <meta name="theme-color" content="#1e9e5e">
-<title>우리동네 약국</title>
+<link rel="canonical" href="https://simya-yakguk.vercel.app/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="심야약국">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:title" content="심야약국 - 지금 문 연 약국 찾기">
+<meta property="og:description" content="밤늦게, 주말, 공휴일에도 문 연 약국을 내 주변에서 바로 찾아요. 영업시간과 전화 연결까지.">
+<meta property="og:url" content="https://simya-yakguk.vercel.app/">
+<meta property="og:image" content="https://simya-yakguk.vercel.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- site-verification --><!-- /site-verification -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"WebSite","name":"심야약국","alternateName":["심야약국 찾기","지금 문 연 약국"],"url":"https://simya-yakguk.vercel.app/","inLanguage":"ko-KR",
+ "potentialAction":{"@type":"SearchAction","target":"https://simya-yakguk.vercel.app/?q={search_term_string}","query-input":"required name=search_term_string"}},
+{"@type":"FAQPage","mainEntity":[
+ {"@type":"Question","name":"지금 문 연 심야약국은 어떻게 찾나요?","acceptedAnswer":{"@type":"Answer","text":"'내 위치로'를 누르거나 동 이름을 검색하면, 지금 시간에 영업 중인 약국만 가까운 순서로 보여드려요. '심야' 필터를 켜면 밤 10시 넘어서까지 여는 약국만 볼 수 있어요."}},
+ {"@type":"Question","name":"일요일이나 공휴일에 여는 약국도 찾을 수 있나요?","acceptedAnswer":{"@type":"Answer","text":"네. 오늘이 일요일이나 공휴일이면 그날 영업시간으로 계산해요. '주말·공휴일' 필터나 상세검색의 날짜·시간을 바꿔서 미리 확인할 수도 있어요."}},
+ {"@type":"Question","name":"약국 영업시간 정보는 어디서 오나요?","acceptedAnswer":{"@type":"Answer","text":"국립중앙의료원 전국 약국 정보(공공데이터포털)를 매일 새벽 받아서 보여드려요. 약국 사정으로 바뀔 수 있으니 방문 전에 전화로 확인해 주세요."}},
+ {"@type":"Question","name":"근처에 문 연 약국이 없으면 어떻게 하나요?","acceptedAnswer":{"@type":"Answer","text":"편의점에서 해열진통제, 감기약, 소화제, 파스 같은 안전상비의약품을 살 수 있어요. 응급 상황이면 119, 보건복지상담은 129로 전화하세요."}}
+]}
+]}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
 <style>
@@ -98,6 +124,12 @@ svg { display: block; }
 .help button { min-height: 46px; padding: 0 16px; border-radius: 23px; border: 1px solid var(--line); background: var(--surface); font-size: 15px; }
 .help button b { color: var(--accent-ink); font-family: var(--font-display); font-weight: 400; }
 .help button.urgent b { color: var(--warn); }
+.regions .chips a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); text-decoration: none; font-size: 15px; }
+.regions .chips a:hover { background: var(--accent-soft); color: var(--accent-ink); }
+.regions .fine a, .foot a { color: var(--accent-ink); }
+.faq details { border-radius: 16px; background: var(--bg); padding: 12px 16px; }
+.faq summary { cursor: pointer; font-size: 16px; }
+.faq details p { margin: 8px 0 0; color: var(--muted); font-size: 15px; }
 .notice { font-size: 13px; color: var(--muted); background: var(--accent-soft); border-radius: 14px; padding: 10px 14px; text-align: left; }
 .notice strong { color: var(--fg); }
 .foot { border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
@@ -186,7 +218,7 @@ svg { display: block; }
   <div class="wrap">
     <button class="brand disp" id="goHome" type="button" aria-label="처음 화면으로">
       <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="15" fill="var(--accent)"/><path d="M15 8.5v13M8.5 15h13" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/></svg>
-      우리동네 약국
+      심야약국
     </button>
     <nav aria-label="바로가기">
       <button type="button" data-go="open" class="hide-sm">지금 연 약국</button>
@@ -214,7 +246,7 @@ svg { display: block; }
     </svg>
     <div style="display:grid;gap:8px">
       <h1 class="disp">어디가 불편하세요?<br>가까운 약국 찾아드릴게요</h1>
-      <p>지금 문 연 곳만 골라서 보여드려요</p>
+      <p>심야약국, 주말·공휴일 약국까지 지금 문 연 곳만 골라서 보여드려요</p>
     </div>
     <form id="homeForm" role="search">
       <label for="hq" class="sr" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">동, 주소, 약국 이름</label>
@@ -247,9 +279,23 @@ svg { display: block; }
       </div>
       <div class="fine" style="font-size:13px;color:var(--muted)">근처에 문 연 약국이 없으면 편의점에서 해열진통제, 감기약, 소화제, 파스 같은 안전상비의약품을 살 수 있어요.</div>
     </section>
+    <section class="help regions" aria-labelledby="regionsTitle">
+      <h2 class="disp" id="regionsTitle">지역별 심야약국 · 주말약국</h2>
+      <div class="chips">
+        <a href="서울/">서울</a><a href="경기/">경기</a><a href="인천/">인천</a><a href="부산/">부산</a><a href="대구/">대구</a><a href="광주/">광주</a><a href="대전/">대전</a><a href="울산/">울산</a><a href="세종/">세종</a><a href="강원/">강원</a><a href="충북/">충북</a><a href="충남/">충남</a><a href="전북/">전북</a><a href="전남/">전남</a><a href="경북/">경북</a><a href="경남/">경남</a><a href="제주/">제주</a>
+      </div>
+      <div class="fine"><a href="지역/">전국 시·군·구 전체 보기</a></div>
+    </section>
+    <section class="help faq" aria-labelledby="faqTitle">
+      <h2 class="disp" id="faqTitle">자주 묻는 질문</h2>
+      <details><summary>지금 문 연 심야약국은 어떻게 찾나요?</summary><p>'내 위치로'를 누르거나 동 이름을 검색하면, 지금 시간에 영업 중인 약국만 가까운 순서로 보여드려요. '심야' 필터를 켜면 밤 10시 넘어서까지 여는 약국만 볼 수 있어요.</p></details>
+      <details><summary>일요일이나 공휴일에 여는 약국도 찾을 수 있나요?</summary><p>네. 오늘이 일요일이나 공휴일이면 그날 영업시간으로 계산해요. '주말·공휴일' 필터나 상세검색의 날짜·시간을 바꿔서 미리 확인할 수도 있어요.</p></details>
+      <details><summary>약국 영업시간 정보는 어디서 오나요?</summary><p>국립중앙의료원 전국 약국 정보(공공데이터포털)를 매일 새벽 받아서 보여드려요. 약국 사정으로 바뀔 수 있으니 방문 전에 전화로 확인해 주세요.</p></details>
+      <details><summary>근처에 문 연 약국이 없으면 어떻게 하나요?</summary><p>편의점에서 해열진통제, 감기약, 소화제, 파스 같은 안전상비의약품을 살 수 있어요. 응급 상황이면 119, 보건복지상담은 129로 전화하세요.</p></details>
+    </section>
     <div class="notice" id="sampleNotice" hidden><strong>예시 데이터로 보는 미리보기예요.</strong> 약국 이름·주소·전화는 가짜예요.</div>
   </div>
-  <footer class="foot"><div class="wrap"><b class="disp" style="font-size:16px;color:var(--fg)">우리동네 약국</b><span id="dataDate"></span><span id="mapNote" hidden></span><span>약국 정보 출처: 국립중앙의료원 전국 약국 정보 (공공데이터포털)</span><span>운영시간은 약국 사정으로 바뀔 수 있어요. 방문 전에 전화로 확인하세요.</span></div></footer>
+  <footer class="foot"><div class="wrap"><b class="disp" style="font-size:16px;color:var(--fg)">심야약국</b><span id="dataDate"></span><span id="mapNote" hidden></span><span>약국 정보 출처: 국립중앙의료원 전국 약국 정보 (공공데이터포털)</span><span><a href="지역/">전국 지역별 심야약국</a></span><span>운영시간은 약국 사정으로 바뀔 수 있어요. 방문 전에 전화로 확인하세요.</span></div></footer>
 </div>
 
 <!-- RESULTS -->
