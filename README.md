@@ -7,6 +7,7 @@
 - `.github/workflows/update-data.yml` : 매일 03:00(KST) 실행, 변경분 커밋
 - `public/` : 사이트. 카카오 지도 키가 없으면 간이 지도로 동작
 - `scripts/build.mjs` : Vercel 빌드 시 `KAKAO_JS_KEY` → `public/config.js`
+- 약국 상세의 길 안내: 카카오맵 / 네이버지도 버튼 (키 필요 없음). 휴대폰에선 네이버지도 앱을 열고, 앱이 없거나 PC면 네이버지도 웹 검색으로 열림
 
 ## 설정
 1. GitHub → Settings → Secrets and variables → Actions → `DATA_GO_KR_KEY` (공공데이터포털 인증키)

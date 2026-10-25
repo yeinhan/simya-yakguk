@@ -193,6 +193,19 @@ function row({ i, st, d, late, all, weekend }, m) {
       <span class="meta">${status} · 걸어서 ${walkTxt(d)} · ${distTxt(d)}</span><span class="tags">${tags}</span></button>
     <button class="call" type="button" data-tel="${esc(i.dutyTel1)}" aria-label="${esc(i.dutyName)}에 전화하기"><svg width="20" height="20" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5l2.2 3-1.4 1.6c.8 1.8 2.3 3.3 4.1 4.1l1.6-1.4 3 2.2-1 2.5C7.6 13.6 2.4 8.4 1.5 3.5z" fill="#fff"/></svg></button></div>`;
 }
+// Naver Map: the app's walking-route scheme on phones; on the web, a place search (name + 시/구), since map.naver.com has no stable public URL that takes plain coordinates.
+const MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+function naverLinks(i) {
+  const region = i.dutyAddr.split(" ").slice(0, 2).join(" ");
+  return { app: `nmap://route/walk?dlat=${i.lat}&dlng=${i.lon}&dname=${encodeURIComponent(i.dutyName)}&appname=${encodeURIComponent(location.hostname || "simya-yakguk")}`,
+    web: `https://map.naver.com/p/search/${encodeURIComponent(region + " " + i.dutyName)}` };
+}
+function openNaver(a) {
+  const web = a.href; let left = false;
+  const onHide = () => { left = true; }; document.addEventListener("visibilitychange", onHide, { once: true });
+  location.href = a.dataset.nmap;
+  setTimeout(() => { document.removeEventListener("visibilitychange", onHide); if (!left && document.visibilityState === "visible") location.href = web; }, 1500);
+}
 function renderDetail() {
   const i = store.get(selected); if (!i) return showView("results");
   const m = moment(), st = status(i, m), d = origin ? km(origin, i) : 0, today = effDay(m);
@@ -204,10 +217,12 @@ function renderDetail() {
   else pill = `<span class="pillbig off">${st.opensAt != null ? fmt(st.opensAt) + "에 열어요" : "오늘은 영업이 끝났어요"}</span>`;
   const rowsH = [1,2,3,4,5,6,7,8].map(dd => { const s = i["dutyTime"+dd+"s"], c = i["dutyTime"+dd+"c"];
     return `<tr class="${dd === today ? "today" : ""}"><td>${DAY_LABEL[dd]}${dd === today ? " (오늘)" : ""}</td><td>${s ? hhmm(s) + " – " + hhmm(c) : "휴무"}</td></tr>`; }).join("");
-  const q = encodeURIComponent(i.dutyName);
+  const nv = naverLinks(i);
   $("sheet").innerHTML = `${pill}<div><h1 class="disp">${esc(i.dutyName)}</h1><div class="addr">${esc(i.dutyAddr)}${i.dutyTel1 ? " · " + esc(i.dutyTel1) : ""}</div></div>
-    <div class="row2">${i.dutyTel1 ? `<button class="btn" type="button" data-tel="${esc(i.dutyTel1)}">전화하기</button>` : `<span></span>`}
-      <a class="btn soft" href="https://map.kakao.com/link/to/${q},${i.lat},${i.lon}" target="_blank" rel="noopener">길 안내 시작</a></div>
+    ${i.dutyTel1 ? `<button class="btn" type="button" data-tel="${esc(i.dutyTel1)}">전화하기</button>` : ""}
+    <div class="go"><span class="golabel">길 안내 시작</span><div class="row2">
+      <a class="btn soft" href="https://map.kakao.com/link/to/${encodeURIComponent(i.dutyName)},${i.lat},${i.lon}" target="_blank" rel="noopener"><i class="dot kakao" aria-hidden="true"></i>카카오맵</a>
+      <a class="btn soft" href="${esc(nv.web)}" data-nmap="${esc(nv.app)}" target="_blank" rel="noopener"><i class="dot naver" aria-hidden="true"></i>네이버지도</a></div></div>
     <div><h2 class="disp">영업시간</h2><table class="hours">${rowsH}</table></div>
     <div class="fine">영업시간은 약국 사정으로 바뀔 수 있어요. 가기 전에 전화로 확인하세요.</div>`;
 }
@@ -254,6 +269,7 @@ $("helpBtn").addEventListener("click", () => { showView("home"); $("helpSec").sc
 document.addEventListener("click", e => {
   const t = e.target.closest("[data-tel]"); if (t) { const tel = t.dataset.tel;
     navigator.clipboard?.writeText(tel).then(() => toast(`${tel} 번호를 복사했어요`), () => toast(tel)); location.href = "tel:" + tel.replace(/-/g, ""); return; }
+  const nm = e.target.closest("[data-nmap]"); if (nm && MOBILE) { e.preventDefault(); openNaver(nm); return; }
   const o = e.target.closest("[data-open]"); if (o) { selected = o.dataset.open; showView("detail"); return; }
   if (e.target.closest("[data-wider]")) { radius = RADII[RADII.indexOf(radius) + 1]; selected = null; render(); return; }
   const pin = e.target.closest(".pin, .kpin"); if (pin) { const id = pin.dataset.id;
