@@ -4,173 +4,173 @@
   "trailingSlash": true,
   "redirects": [
     {
-      "source": "/서울/:path*",
-      "destination": "/pharmacy/서울/:path*",
+      "source": "/서울/:path(.*)",
+      "destination": "/pharmacy/서울/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EC%84%9C%EC%9A%B8/:path*",
-      "destination": "/pharmacy/%EC%84%9C%EC%9A%B8/:path*",
+      "source": "/%EC%84%9C%EC%9A%B8/:path(.*)",
+      "destination": "/pharmacy/%EC%84%9C%EC%9A%B8/:path",
       "statusCode": 301
     },
     {
-      "source": "/경기/:path*",
-      "destination": "/pharmacy/경기/:path*",
+      "source": "/경기/:path(.*)",
+      "destination": "/pharmacy/경기/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EA%B2%BD%EA%B8%B0/:path*",
-      "destination": "/pharmacy/%EA%B2%BD%EA%B8%B0/:path*",
+      "source": "/%EA%B2%BD%EA%B8%B0/:path(.*)",
+      "destination": "/pharmacy/%EA%B2%BD%EA%B8%B0/:path",
       "statusCode": 301
     },
     {
-      "source": "/인천/:path*",
-      "destination": "/pharmacy/인천/:path*",
+      "source": "/인천/:path(.*)",
+      "destination": "/pharmacy/인천/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EC%9D%B8%EC%B2%9C/:path*",
-      "destination": "/pharmacy/%EC%9D%B8%EC%B2%9C/:path*",
+      "source": "/%EC%9D%B8%EC%B2%9C/:path(.*)",
+      "destination": "/pharmacy/%EC%9D%B8%EC%B2%9C/:path",
       "statusCode": 301
     },
     {
-      "source": "/부산/:path*",
-      "destination": "/pharmacy/부산/:path*",
+      "source": "/부산/:path(.*)",
+      "destination": "/pharmacy/부산/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EB%B6%80%EC%82%B0/:path*",
-      "destination": "/pharmacy/%EB%B6%80%EC%82%B0/:path*",
+      "source": "/%EB%B6%80%EC%82%B0/:path(.*)",
+      "destination": "/pharmacy/%EB%B6%80%EC%82%B0/:path",
       "statusCode": 301
     },
     {
-      "source": "/대구/:path*",
-      "destination": "/pharmacy/대구/:path*",
+      "source": "/대구/:path(.*)",
+      "destination": "/pharmacy/대구/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EB%8C%80%EA%B5%AC/:path*",
-      "destination": "/pharmacy/%EB%8C%80%EA%B5%AC/:path*",
+      "source": "/%EB%8C%80%EA%B5%AC/:path(.*)",
+      "destination": "/pharmacy/%EB%8C%80%EA%B5%AC/:path",
       "statusCode": 301
     },
     {
-      "source": "/광주/:path*",
-      "destination": "/pharmacy/광주/:path*",
+      "source": "/광주/:path(.*)",
+      "destination": "/pharmacy/광주/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EA%B4%91%EC%A3%BC/:path*",
-      "destination": "/pharmacy/%EA%B4%91%EC%A3%BC/:path*",
+      "source": "/%EA%B4%91%EC%A3%BC/:path(.*)",
+      "destination": "/pharmacy/%EA%B4%91%EC%A3%BC/:path",
       "statusCode": 301
     },
     {
-      "source": "/대전/:path*",
-      "destination": "/pharmacy/대전/:path*",
+      "source": "/대전/:path(.*)",
+      "destination": "/pharmacy/대전/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EB%8C%80%EC%A0%84/:path*",
-      "destination": "/pharmacy/%EB%8C%80%EC%A0%84/:path*",
+      "source": "/%EB%8C%80%EC%A0%84/:path(.*)",
+      "destination": "/pharmacy/%EB%8C%80%EC%A0%84/:path",
       "statusCode": 301
     },
     {
-      "source": "/울산/:path*",
-      "destination": "/pharmacy/울산/:path*",
+      "source": "/울산/:path(.*)",
+      "destination": "/pharmacy/울산/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EC%9A%B8%EC%82%B0/:path*",
-      "destination": "/pharmacy/%EC%9A%B8%EC%82%B0/:path*",
+      "source": "/%EC%9A%B8%EC%82%B0/:path(.*)",
+      "destination": "/pharmacy/%EC%9A%B8%EC%82%B0/:path",
       "statusCode": 301
     },
     {
-      "source": "/세종/:path*",
-      "destination": "/pharmacy/세종/:path*",
+      "source": "/세종/:path(.*)",
+      "destination": "/pharmacy/세종/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EC%84%B8%EC%A2%85/:path*",
-      "destination": "/pharmacy/%EC%84%B8%EC%A2%85/:path*",
+      "source": "/%EC%84%B8%EC%A2%85/:path(.*)",
+      "destination": "/pharmacy/%EC%84%B8%EC%A2%85/:path",
       "statusCode": 301
     },
     {
-      "source": "/강원/:path*",
-      "destination": "/pharmacy/강원/:path*",
+      "source": "/강원/:path(.*)",
+      "destination": "/pharmacy/강원/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EA%B0%95%EC%9B%90/:path*",
-      "destination": "/pharmacy/%EA%B0%95%EC%9B%90/:path*",
+      "source": "/%EA%B0%95%EC%9B%90/:path(.*)",
+      "destination": "/pharmacy/%EA%B0%95%EC%9B%90/:path",
       "statusCode": 301
     },
     {
-      "source": "/충북/:path*",
-      "destination": "/pharmacy/충북/:path*",
+      "source": "/충북/:path(.*)",
+      "destination": "/pharmacy/충북/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EC%B6%A9%EB%B6%81/:path*",
-      "destination": "/pharmacy/%EC%B6%A9%EB%B6%81/:path*",
+      "source": "/%EC%B6%A9%EB%B6%81/:path(.*)",
+      "destination": "/pharmacy/%EC%B6%A9%EB%B6%81/:path",
       "statusCode": 301
     },
     {
-      "source": "/충남/:path*",
-      "destination": "/pharmacy/충남/:path*",
+      "source": "/충남/:path(.*)",
+      "destination": "/pharmacy/충남/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EC%B6%A9%EB%82%A8/:path*",
-      "destination": "/pharmacy/%EC%B6%A9%EB%82%A8/:path*",
+      "source": "/%EC%B6%A9%EB%82%A8/:path(.*)",
+      "destination": "/pharmacy/%EC%B6%A9%EB%82%A8/:path",
       "statusCode": 301
     },
     {
-      "source": "/전북/:path*",
-      "destination": "/pharmacy/전북/:path*",
+      "source": "/전북/:path(.*)",
+      "destination": "/pharmacy/전북/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EC%A0%84%EB%B6%81/:path*",
-      "destination": "/pharmacy/%EC%A0%84%EB%B6%81/:path*",
+      "source": "/%EC%A0%84%EB%B6%81/:path(.*)",
+      "destination": "/pharmacy/%EC%A0%84%EB%B6%81/:path",
       "statusCode": 301
     },
     {
-      "source": "/전남/:path*",
-      "destination": "/pharmacy/전남/:path*",
+      "source": "/전남/:path(.*)",
+      "destination": "/pharmacy/전남/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EC%A0%84%EB%82%A8/:path*",
-      "destination": "/pharmacy/%EC%A0%84%EB%82%A8/:path*",
+      "source": "/%EC%A0%84%EB%82%A8/:path(.*)",
+      "destination": "/pharmacy/%EC%A0%84%EB%82%A8/:path",
       "statusCode": 301
     },
     {
-      "source": "/경북/:path*",
-      "destination": "/pharmacy/경북/:path*",
+      "source": "/경북/:path(.*)",
+      "destination": "/pharmacy/경북/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EA%B2%BD%EB%B6%81/:path*",
-      "destination": "/pharmacy/%EA%B2%BD%EB%B6%81/:path*",
+      "source": "/%EA%B2%BD%EB%B6%81/:path(.*)",
+      "destination": "/pharmacy/%EA%B2%BD%EB%B6%81/:path",
       "statusCode": 301
     },
     {
-      "source": "/경남/:path*",
-      "destination": "/pharmacy/경남/:path*",
+      "source": "/경남/:path(.*)",
+      "destination": "/pharmacy/경남/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EA%B2%BD%EB%82%A8/:path*",
-      "destination": "/pharmacy/%EA%B2%BD%EB%82%A8/:path*",
+      "source": "/%EA%B2%BD%EB%82%A8/:path(.*)",
+      "destination": "/pharmacy/%EA%B2%BD%EB%82%A8/:path",
       "statusCode": 301
     },
     {
-      "source": "/제주/:path*",
-      "destination": "/pharmacy/제주/:path*",
+      "source": "/제주/:path(.*)",
+      "destination": "/pharmacy/제주/:path",
       "statusCode": 301
     },
     {
-      "source": "/%EC%A0%9C%EC%A3%BC/:path*",
-      "destination": "/pharmacy/%EC%A0%9C%EC%A3%BC/:path*",
+      "source": "/%EC%A0%9C%EC%A3%BC/:path(.*)",
+      "destination": "/pharmacy/%EC%A0%9C%EC%A3%BC/:path",
       "statusCode": 301
     },
     {
