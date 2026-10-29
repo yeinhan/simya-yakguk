@@ -1,4 +1,4 @@
-// Vercel build step: writes public/config.js from environment variables (the Kakao JavaScript key is public by design;
+// Build step (Vercel or Cloudflare Pages): writes public/config.js from environment variables (the Kakao JavaScript key is public by design;
 // it is restricted by the registered site domain in the Kakao developer console).
 import { writeFile } from "node:fs/promises";
 const cfg = { kakaoJsKey: process.env.KAKAO_JS_KEY || "" };
@@ -9,10 +9,10 @@ console.log(cfg.kakaoJsKey ? "config.js written with Kakao key" : "config.js wri
 const { buildSeo } = await import("./seo-pages.mjs");
 await buildSeo();
 
-// Speed for the home page (Vercel only, so local runs leave index.html untouched):
-// config inlined (one request fewer), app.js versioned by content hash so vercel.json can cache it for a year,
+// Speed for the home page (on the host only, so local runs leave index.html untouched):
+// config inlined (one request fewer), app.js versioned by content hash so vercel.json / _headers can cache it for a year,
 // and the inline CSS squeezed.
-if (process.env.VERCEL) {
+if (process.env.VERCEL || process.env.CF_PAGES) {
   const { readFile } = await import("node:fs/promises");
   const { createHash } = await import("node:crypto");
   const pub = new URL("../public/", import.meta.url), indexUrl = new URL("index.html", pub);

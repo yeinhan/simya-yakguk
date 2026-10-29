@@ -2,15 +2,16 @@
 //   /pharmacy/                        all regions
 //   /pharmacy/<시도>/                 e.g. /pharmacy/서울/        districts with counts + pharmacies open past midnight
 //   /pharmacy/<시도>/<시군구>/        e.g. /pharmacy/서울/관악구/  24-hour, night, Sunday and holiday pharmacies, then every pharmacy by 동
-// The old /<시도>/... and /지역/ addresses 301 to these (vercel.json).
-//   /sitemap.xml, /robots.txt
+// The old /<시도>/... and /지역/ addresses 301 to these (vercel.json, public/_redirects).
+//   /sitemap.xml, /robots.txt, /404.html
 // Also fills the site-verification marker in public/index.html from NAVER_SITE_VERIFICATION* / GOOGLE_SITE_VERIFICATION*.
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 
 export const SITE_NAME = "심야약국";
 // The one public address. simya-yakguk.vercel.app and kpharmacy24.com redirect here (vercel.json / Vercel domain settings).
 export const SITE_URL = (process.env.SITE_URL || "https://www.kpharmacy24.com").replace(/\/$/, "");
-const PREVIEW = process.env.VERCEL_ENV === "preview";
+// Preview builds (pull requests, other branches) tell search engines to stay away.
+const PREVIEW = process.env.VERCEL_ENV === "preview" || (!!process.env.CF_PAGES && process.env.CF_PAGES_BRANCH !== "main");
 
 const pub = new URL("../public/", import.meta.url);
 const SIDO = {
@@ -218,11 +219,16 @@ export async function buildSeo() {
   }
   for (const p of pages) await put(p.path, p.html);
 
+  // Not-found page. Cloudflare Pages serves it with a real 404; without it every unknown address would get the home page.
+  const notFound = page({ path: "/404.html", title: `페이지를 찾을 수 없어요 | ${SITE_NAME}`, desc: "주소가 바뀌었거나 없는 페이지예요.", crumbs: [["홈", "/"], ["찾을 수 없음", "/404.html"]],
+    body: `<h1>페이지를 찾을 수 없어요</h1><p>주소가 바뀌었거나 없는 페이지예요.</p><p><a class="btn" href="/">내 주변 문 연 약국 찾기</a> <a class="btn soft" href="/pharmacy/">지역별 약국 보기</a></p>` });
+  await writeFile(new URL("404.html", pub), notFound.replace(/<link rel="canonical"[^>]*>/, '<meta name="robots" content="noindex">'));
+
   const urls = ["/", ...pages.map(p => p.path)];
   await writeFile(new URL("sitemap.xml", pub), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(u => `<url><loc>${esc(SITE_URL + u)}</loc><lastmod>${updated}</lastmod></url>`).join("\n")}\n</urlset>\n`);
   await writeFile(new URL("robots.txt", pub), PREVIEW ? "User-agent: *\nDisallow: /\n" : `User-agent: *\nAllow: /\nDisallow: /data/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 
-  // Search Console / Search Advisor ownership tags (public values, set as Vercel environment variables).
+  // Search Console / Search Advisor ownership tags (public values, set as Vercel / Cloudflare Pages environment variables).
   // One tag per registered address: values may be comma-separated, or split over NAVER_SITE_VERIFICATION2, ...3 and so on.
   const env = Object.entries(process.env).sort(([a], [b]) => a.localeCompare(b));
   const tags = [["google-site-verification", "GOOGLE_SITE_VERIFICATION"], ["naver-site-verification", "NAVER_SITE_VERIFICATION"]]
