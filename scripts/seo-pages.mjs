@@ -223,10 +223,12 @@ export async function buildSeo() {
   await writeFile(new URL("robots.txt", pub), PREVIEW ? "User-agent: *\nDisallow: /\n" : `User-agent: *\nAllow: /\nDisallow: /data/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 
   // Search Console / Search Advisor ownership tags (public values, set as Vercel environment variables).
+  // Several values may be comma-separated: each domain registered in Search Advisor gets its own Naver tag.
   const tags = [["google-site-verification", process.env.GOOGLE_SITE_VERIFICATION], ["naver-site-verification", process.env.NAVER_SITE_VERIFICATION]]
-    .filter(([, v]) => v).map(([n, v]) => `<meta name="${n}" content="${esc(v.trim())}">`).join("\n");
+    .flatMap(([n, v]) => (v || "").split(",").map(s => s.trim()).filter(Boolean).map(s => `<meta name="${n}" content="${esc(s)}">`)).join("\n");
   const indexUrl = new URL("index.html", pub), index = await readFile(indexUrl, "utf8");
-  let out = index.replace(/<!-- site-verification -->[\s\S]*?<!-- \/site-verification -->/, `<!-- site-verification -->${tags ? "\n" + tags + "\n" : ""}<!-- /site-verification -->`);
+  // index.html is written against the vercel.app address; point its canonical, og and JSON-LD URLs at the real one.
+  let out = index.replaceAll("https://simya-yakguk.vercel.app", SITE_URL).replace(/<!-- site-verification -->[\s\S]*?<!-- \/site-verification -->/, `<!-- site-verification -->${tags ? "\n" + tags + "\n" : ""}<!-- /site-verification -->`);
   if (PREVIEW) out = out.replace("<!-- /site-verification -->", `<!-- /site-verification -->\n<meta name="robots" content="noindex">`);
   if (out !== index) await writeFile(indexUrl, out);
   console.log(`seo: ${pages.length} region pages, ${urls.length} sitemap urls (${SITE_URL})${PREVIEW ? " [preview: noindex]" : ""}`);
