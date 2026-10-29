@@ -4,7 +4,7 @@
 //   /pharmacy/<시도>/<시군구>/        e.g. /pharmacy/서울/관악구/  24-hour, night, Sunday and holiday pharmacies, then every pharmacy by 동
 // The old /<시도>/... and /지역/ addresses 301 to these (vercel.json, public/_redirects).
 //   /sitemap.xml, /robots.txt, /404.html
-//   /privacy/, and /ads.txt when ADSENSE_CLIENT is set
+//   /privacy/, and /ads.txt when ADSENSE_CLIENT is set; Kakao AdFit slots on region pages and the home page when ADFIT_UNIT is set
 // Also fills the site-verification marker in public/index.html from NAVER_SITE_VERIFICATION* / GOOGLE_SITE_VERIFICATION*
 // (plus the AdSense script when ADSENSE_CLIENT is set).
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -15,6 +15,10 @@ export const SITE_URL = (process.env.SITE_URL || "https://www.kpharmacy24.com").
 // Google AdSense publisher id (ca-pub-…, public by design). Unset = no ad code and no ads.txt anywhere.
 const ADSENSE = /^ca-pub-\d+$/.test((process.env.ADSENSE_CLIENT || "").trim()) ? process.env.ADSENSE_CLIENT.trim() : "";
 const ADSENSE_TAG = ADSENSE ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE}" crossorigin="anonymous"></script>` : "";
+// Kakao AdFit ad unit (DAN-…, public by design; size from ADFIT_SIZE, default 320x100). Unset = no ad slots anywhere.
+const ADFIT = /^DAN-[A-Za-z0-9]+$/.test((process.env.ADFIT_UNIT || "").trim()) ? process.env.ADFIT_UNIT.trim() : "";
+const [ADFIT_W, ADFIT_H] = (/^(\d+)x(\d+)$/.exec((process.env.ADFIT_SIZE || "").trim()) || [, "320", "100"]).slice(1);
+export const AD_SLOT = ADFIT ? `<div class="ad" style="margin:28px auto;text-align:center;min-height:${ADFIT_H}px"><ins class="kakao_ad_area" style="display:none" data-ad-unit="${ADFIT}" data-ad-width="${ADFIT_W}" data-ad-height="${ADFIT_H}"></ins><script async src="https://t1.daumcdn.net/kas/static/ba.min.js"></script></div>` : "";
 const CONTACT = (process.env.CONTACT_EMAIL || "").trim();
 // Preview builds (pull requests, other branches) tell search engines to stay away.
 const PREVIEW = process.env.VERCEL_ENV === "preview" || (!!process.env.CF_PAGES && process.env.CF_PAGES_BRANCH !== "main");
@@ -95,7 +99,7 @@ let n=0;document.querySelectorAll("[data-h]").forEach(c=>{const h=c.dataset.h.sp
 const s=c.querySelector(".now");if(s){s.className="tag "+(open?"":"off")+" now";s.textContent=open?"지금 영업 중":"지금은 닫힘";}if(open)n++;});
 const o=document.getElementById("openNow");if(o)o.textContent=n+"곳";})();`;
 
-function page({ path, title, desc, crumbs, body, ld, hasNow }) {
+function page({ path, title, desc, crumbs, body, ld, hasNow, ad }) {
   const url = SITE_URL + path;
   const bc = { "@type": "BreadcrumbList", itemListElement: crumbs.map(([name, p], i) => ({ "@type": "ListItem", position: i + 1, name, item: SITE_URL + p })) };
   const graph = { "@context": "https://schema.org", "@graph": [bc, ...(ld || [])] };
@@ -122,6 +126,7 @@ ${ADSENSE_TAG}
 <main class="wrap">
 <nav class="crumb" aria-label="현재 위치">${crumbs.map(([n, p], i) => i === crumbs.length - 1 ? esc(n) : `<a href="${esc(p)}">${esc(n)}</a> › `).join("")}</nav>
 ${body}
+${ad ? AD_SLOT : ""}
 </main>
 <footer class="foot"><div class="wrap"><b class="disp" style="font-size:16px;color:var(--fg)">${SITE_NAME}</b><span>약국 정보 출처: 국립중앙의료원 전국 약국 정보 (공공데이터포털), 매일 갱신</span><span>운영시간은 약국 사정으로 바뀔 수 있어요. 방문 전에 전화로 확인하세요.</span><span><a href="/pharmacy/">전국 지역별 약국</a> · <a href="/privacy/">개인정보처리방침</a></span></div></footer>
 ${hasNow ? `<script>${NOW_JS}</script>` : ""}
@@ -174,7 +179,7 @@ ${always.length ? `<h2>${esc(name)} 연중무휴 약국</h2><ul class="mini">${a
 ${dongs.map((d, i) => `<h3 id="d${i}">${esc(name)} ${esc(d)} 약국</h3><div class="cards">${byDong.get(d).map(card).join("")}</div>`).join("\n")}`;
   const crumbs = [[SITE_NAME, "/"], ["지역별", urlPath()], [sido, urlPath(sido)], ...(gu ? [[gu, path]] : [])];
   const ld = [{ "@type": "ItemList", name: `${full} 심야약국`, itemListElement: late.slice(0, 30).map((p, i) => ({ "@type": "ListItem", position: i + 1, item: pharmacyLD(p) })) }];
-  return { path, html: page({ path, title, desc, crumbs, body, ld, hasNow: true }) };
+  return { path, html: page({ path, title, desc, crumbs, body, ld, hasNow: true, ad: true }) };
 }
 
 function sidoPage(sido, sidoFull, gus, list, updated) {
@@ -190,7 +195,7 @@ function sidoPage(sido, sidoFull, gus, list, updated) {
 <ul class="grid">${gus.map(([g, l]) => `<li><a href="${esc(urlPath(sido, g))}">${esc(g)} <small>심야 ${l.filter(p => p.late).length} · 전체 ${l.length}</small></a></li>`).join("")}</ul>
 <h2>${esc(sido)}에서 밤 12시 넘어서까지 여는 약국</h2>
 ${late.length ? `<ul class="mini">${late.slice(0, 80).map(p => miniRow(p, `${p.gu} ${p.dong} · ${p.full ? "24시간" : clock(p.close) + "까지"}`, urlPath(sido, p.gu) + "#" + anchor(p))).join("")}</ul>` : `<p>밤 12시 넘어서까지 여는 약국 정보가 없어요. 시·군·구 페이지에서 밤 10시 이후 약국을 확인해 보세요.</p>`}`;
-  return { path, html: page({ path, title, desc, crumbs: [[SITE_NAME, "/"], ["지역별", urlPath()], [sido, path]], body }) };
+  return { path, html: page({ path, title, desc, crumbs: [[SITE_NAME, "/"], ["지역별", urlPath()], [sido, path]], body, ad: true }) };
 }
 
 function indexPage(bySido, updated) {
@@ -199,7 +204,7 @@ function indexPage(bySido, updated) {
 <p class="lead">시·도와 시·군·구를 골라 밤늦게, 일요일, 공휴일에 여는 약국을 확인하세요. (데이터 기준 ${updated})</p>
 ${SIDO_ORDER.filter(s => bySido.has(s)).map(s => { const { gus, list } = bySido.get(s);
     return `<h2><a href="${esc(urlPath(s))}">${esc(s)}</a> <small style="font-size:15px;color:var(--muted)">${list.length}곳</small></h2>${gus.length ? `<ul class="grid">${gus.map(([g]) => `<li><a href="${esc(urlPath(s, g))}">${esc(g)}</a></li>`).join("")}</ul>` : ""}`; }).join("\n")}`;
-  return { path, html: page({ path, title: `전국 지역별 응급약국 · 24시 약국 · 심야약국 | ${SITE_NAME}`, desc: "서울, 경기, 부산 등 전국 시·군·구별로 응급약국, 24시 약국, 밤늦게·일요일·공휴일에 문 여는 약국과 영업시간을 확인하세요.", crumbs: [[SITE_NAME, "/"], ["지역별", path]], body }) };
+  return { path, html: page({ path, title: `전국 지역별 응급약국 · 24시 약국 · 심야약국 | ${SITE_NAME}`, desc: "서울, 경기, 부산 등 전국 시·군·구별로 응급약국, 24시 약국, 밤늦게·일요일·공휴일에 문 여는 약국과 영업시간을 확인하세요.", crumbs: [[SITE_NAME, "/"], ["지역별", path]], body, ad: true }) };
 }
 
 // ---- Build --------------------------------------------------------------------------------------
@@ -214,7 +219,7 @@ function privacyPage() {
 <h2>접속 기록</h2>
 <p>사이트를 전달하는 호스팅 업체(Cloudflare)가 보안과 장애 대응을 위해 IP 주소, 접속 시간, 브라우저 정보 같은 기록을 자동으로 남길 수 있어요.</p>
 <h2>광고와 쿠키</h2>
-<p>이 사이트는 Google 애드센스 광고를 보여줄 수 있어요. Google 등 광고 업체는 쿠키를 사용해 이 사이트와 다른 사이트 방문 기록을 바탕으로 광고를 보여줄 수 있어요. 맞춤 광고는 <a href="https://adssettings.google.com" rel="noopener">Google 광고 설정</a>에서 끌 수 있고, 자세한 내용은 <a href="https://policies.google.com/technologies/ads?hl=ko" rel="noopener">Google의 광고 정책</a>에서 볼 수 있어요. 브라우저 설정에서 쿠키를 막을 수도 있어요.</p>
+<p>이 사이트는 카카오 애드핏 등 광고 서비스의 광고를 보여줄 수 있어요. 광고 업체는 쿠키나 광고 식별자를 사용해 관심사에 맞는 광고를 보여줄 수 있어요. 자세한 내용은 <a href="https://www.kakao.com/policy/privacy" rel="noopener">카카오 개인정보처리방침</a>${ADSENSE ? `과 <a href="https://policies.google.com/technologies/ads?hl=ko" rel="noopener">Google 광고 정책</a>(맞춤 광고 끄기: <a href="https://adssettings.google.com" rel="noopener">Google 광고 설정</a>)` : ""}에서 볼 수 있고, 브라우저 설정에서 쿠키를 막을 수도 있어요.</p>
 <h2>문의</h2>
 <p>${CONTACT ? `개인정보 관련 문의: <a href="mailto:${esc(CONTACT)}">${esc(CONTACT)}</a>` : "개인정보 관련 문의는 사이트 운영자에게 해 주세요."}</p>
 <p>시행일: 2026년 10월 29일</p>`;
@@ -267,6 +272,7 @@ export async function buildSeo() {
       .map(s => `<meta name="${n}" content="${esc(s)}">`)).concat(ADSENSE_TAG || []).join("\n");
   const indexUrl = new URL("index.html", pub), index = await readFile(indexUrl, "utf8");
   let out = index.replace(/<!-- site-verification -->[\s\S]*?<!-- \/site-verification -->/, `<!-- site-verification -->${tags ? "\n" + tags + "\n" : ""}<!-- /site-verification -->`);
+  out = out.replace(/<!-- ad-slot -->[\s\S]*?<!-- \/ad-slot -->/, `<!-- ad-slot -->${AD_SLOT}<!-- /ad-slot -->`);
   if (PREVIEW) out = out.replace("<!-- /site-verification -->", `<!-- /site-verification -->\n<meta name="robots" content="noindex">`);
   if (out !== index) await writeFile(indexUrl, out);
   console.log(`seo: ${pages.length} region pages, ${urls.length} sitemap urls (${SITE_URL})${PREVIEW ? " [preview: noindex]" : ""}`);
