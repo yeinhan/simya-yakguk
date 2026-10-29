@@ -6,7 +6,7 @@
     {
       "source": "/:path(.*)",
       "has": [{ "type": "host", "value": "simya-yakguk.vercel.app" }],
-      "destination": "https://kpharmacy24.com/:path",
+      "destination": "https://www.kpharmacy24.com/:path",
       "statusCode": 301
     },
     {
