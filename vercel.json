@@ -4,6 +4,12 @@
   "trailingSlash": true,
   "redirects": [
     {
+      "source": "/:path(.*)",
+      "has": [{ "type": "host", "value": "simya-yakguk.vercel.app" }],
+      "destination": "https://kpharmacy24.com/:path",
+      "statusCode": 301
+    },
+    {
       "source": "/서울/:path(.*)",
       "destination": "/pharmacy/서울/:path",
       "statusCode": 301
