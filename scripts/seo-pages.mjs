@@ -4,7 +4,7 @@
 //   /pharmacy/<시도>/<시군구>/        e.g. /pharmacy/서울/관악구/  24-hour, night, Sunday and holiday pharmacies, then every pharmacy by 동
 // The old /<시도>/... and /지역/ addresses 301 to these (vercel.json).
 //   /sitemap.xml, /robots.txt
-// Also fills the site-verification marker in public/index.html from NAVER_SITE_VERIFICATION / GOOGLE_SITE_VERIFICATION.
+// Also fills the site-verification marker in public/index.html from NAVER_SITE_VERIFICATION* / GOOGLE_SITE_VERIFICATION*.
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 
 export const SITE_NAME = "심야약국";
@@ -223,9 +223,11 @@ export async function buildSeo() {
   await writeFile(new URL("robots.txt", pub), PREVIEW ? "User-agent: *\nDisallow: /\n" : `User-agent: *\nAllow: /\nDisallow: /data/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 
   // Search Console / Search Advisor ownership tags (public values, set as Vercel environment variables).
-  // Several values may be comma-separated: each domain registered in Search Advisor gets its own Naver tag.
-  const tags = [["google-site-verification", process.env.GOOGLE_SITE_VERIFICATION], ["naver-site-verification", process.env.NAVER_SITE_VERIFICATION]]
-    .flatMap(([n, v]) => (v || "").split(",").map(s => s.trim()).filter(Boolean).map(s => `<meta name="${n}" content="${esc(s)}">`)).join("\n");
+  // One tag per registered address: values may be comma-separated, or split over NAVER_SITE_VERIFICATION2, ...3 and so on.
+  const env = Object.entries(process.env).sort(([a], [b]) => a.localeCompare(b));
+  const tags = [["google-site-verification", "GOOGLE_SITE_VERIFICATION"], ["naver-site-verification", "NAVER_SITE_VERIFICATION"]]
+    .flatMap(([n, key]) => env.filter(([k]) => k.startsWith(key)).flatMap(([, v]) => v.split(",")).map(s => s.trim()).filter(Boolean)
+      .map(s => `<meta name="${n}" content="${esc(s)}">`)).join("\n");
   const indexUrl = new URL("index.html", pub), index = await readFile(indexUrl, "utf8");
   let out = index.replace(/<!-- site-verification -->[\s\S]*?<!-- \/site-verification -->/, `<!-- site-verification -->${tags ? "\n" + tags + "\n" : ""}<!-- /site-verification -->`);
   if (PREVIEW) out = out.replace("<!-- /site-verification -->", `<!-- /site-verification -->\n<meta name="robots" content="noindex">`);
