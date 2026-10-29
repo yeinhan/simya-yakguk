@@ -32,8 +32,11 @@
 ]}
 ]}
 </script>
+<!-- Web fonts load without blocking the first paint (text shows in the system font, then swaps). -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap"></noscript>
 <style>
 /* Layout: white public-health look with green accent. Home -> results (map + list; two panes from 900px) -> detail (map + hours) */
 :root {
@@ -43,7 +46,8 @@
   --muted: #56635c;
   --line: #dcebe2;
   --accent: #1e9e5e;
-  --accent-ink: #17804b;
+  --accent-ink: #157a48;
+  --accent-btn: #178650; /* white text on it passes WCAG AA; same in dark mode */
   --accent-soft: #e7f6ee;
   --warn: #a65800;
   --warn-soft: #fff1dc;
@@ -94,14 +98,14 @@ svg { display: block; }
 @media (max-width: 640px) { .bar nav .hide-sm { display: none; } }
 
 /* buttons + inputs */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 0 22px; border: 0; border-radius: 20px; background: var(--accent); color: #fff; font-family: var(--font-display); font-size: 18px; text-decoration: none; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 0 22px; border: 0; border-radius: 20px; background: var(--accent-btn); color: #fff; font-family: var(--font-display); font-size: 18px; text-decoration: none; }
 .btn.soft { background: var(--accent-soft); color: var(--accent-ink); }
 .btn.small { min-height: 44px; border-radius: 16px; font-size: 16px; padding: 0 16px; }
 .searchbox { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 0 8px 0 20px; border-radius: 30px; background: var(--bg); border: 2px solid var(--accent); }
 .searchbox input { flex: 1 1 0; width: 0; min-width: 0; height: 46px; border: 0; background: transparent; color: var(--fg); font-size: 17px; }
 .searchbox input::placeholder { color: var(--muted); }
 .searchbox input:focus { outline: none; }
-.searchbox .go { height: 46px; padding: 0 20px; border: 0; border-radius: 23px; background: var(--accent); color: #fff; font-family: var(--font-display); font-size: 17px; }
+.searchbox .go { display: inline-flex; align-items: center; justify-content: center; line-height: 1; height: 46px; padding: 0 20px; border: 0; border-radius: 23px; background: var(--accent-btn); color: #fff; font-family: var(--font-display); font-size: 17px; }
 .linkbtn { background: none; border: 0; color: var(--accent-ink); font-size: 15px; padding: 8px 4px; text-decoration: underline; text-underline-offset: 3px; }
 
 /* advanced search panel */
@@ -147,7 +151,7 @@ svg { display: block; }
 .tools .searchbox input { height: 40px; font-size: 16px; }
 .chiprow { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; align-items: center; }
 .chip { flex: none; min-height: 40px; padding: 0 16px; border-radius: 20px; border: 1px solid var(--line); background: var(--surface); font-size: 15px; }
-.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip[aria-pressed="true"] { background: var(--accent-btn); border-color: var(--accent-btn); color: #fff; }
 .split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
 .mapwrap { position: relative; background: var(--map); height: 300px; overflow: hidden; }
 .mapwrap .map { width: 100%; height: 100%; }
@@ -176,7 +180,7 @@ svg { display: block; }
 .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
 .tag { font-size: 12.5px; padding: 1px 9px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); }
 .tag.night { background: var(--warn-soft); color: var(--warn); }
-.call { flex: none; width: 52px; height: 52px; border-radius: 26px; background: var(--accent); border: 0; display: grid; place-items: center; }
+.call { flex: none; width: 52px; height: 52px; border-radius: 26px; background: var(--accent-btn); border: 0; display: grid; place-items: center; }
 .empty { text-align: center; color: var(--muted); padding: 30px 8px; }
 .suggest { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 14px; color: var(--muted); justify-content: center; margin-top: 10px; }
 .suggest button { border: 1px dashed var(--line); background: none; border-radius: 16px; padding: 4px 12px; font-size: 14px; }
@@ -221,7 +225,7 @@ svg { display: block; }
 
 <header class="bar">
   <div class="wrap">
-    <button class="brand disp" id="goHome" type="button" aria-label="처음 화면으로">
+    <button class="brand disp" id="goHome" type="button" aria-label="심야약국 처음 화면으로">
       <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="15" fill="var(--accent)"/><path d="M15 8.5v13M8.5 15h13" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/></svg>
       심야약국
     </button>
@@ -357,7 +361,7 @@ svg { display: block; }
 </div>
 <div class="toast" id="toast" hidden></div>
 
-<script src="config.js"></script>
-<script src="app.js"></script>
+<script src="config.js" defer></script>
+<script src="app.js" defer></script>
 </body>
 </html>

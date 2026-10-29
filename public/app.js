@@ -65,7 +65,10 @@ function renderMeta() {
 
 // ---- Kakao (places + map), optional -------------------------------------------------------------
 let kakaoOK = false, mapProblem = "";
-const kakaoReady = new Promise(resolve => {
+// The SDK is loaded only when a map or place search is about to be needed: on the first touch/key/focus,
+// or when results/detail are shown. Keeps it off the first paint of the home screen.
+let kakaoReady = null;
+const loadKakao = () => kakaoReady || (kakaoReady = new Promise(resolve => {
   if (!CFG.kakaoJsKey) return resolve(false);
   const s = document.createElement("script");
   s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(CFG.kakaoJsKey)}&libraries=services&autoload=false`;
@@ -75,11 +78,12 @@ const kakaoReady = new Promise(resolve => {
   document.head.appendChild(s);
 }).then(ok => { if (!ok && !CFG.kakaoJsKey) mapProblem = "지도 키(KAKAO_JS_KEY)가 사이트에 들어 있지 않아요";
   $("mapNote").textContent = ok ? "" : "간이 지도로 표시 중 · " + mapProblem; $("mapNote").hidden = ok;
-  if (ok && (view === "results" || view === "detail")) showView(view); return ok; });
+  if (ok && (view === "results" || view === "detail")) showView(view); return ok; }));
+["pointerdown", "keydown", "focusin"].forEach(t => addEventListener(t, loadKakao, { once: true, passive: true }));
 
 const FALLBACK_PLACES = { "봉천동": [37.4827, 126.9416], "신림동": [37.4842, 126.9297], "서교동": [37.5530, 126.9190], "홍대": [37.5563, 126.9236], "강남역": [37.4979, 127.0276], "역삼동": [37.5006, 127.0366] };
 async function geocode(q) {
-  await Promise.race([kakaoReady, new Promise(r => setTimeout(r, 3000))]);
+  await Promise.race([loadKakao(), new Promise(r => setTimeout(r, 3000))]);
   if (!kakaoOK) { const k = Object.keys(FALLBACK_PLACES).find(x => q.includes(x)); return k ? { lat: FALLBACK_PLACES[k][0], lon: FALLBACK_PLACES[k][1], label: q } : null; }
   const S = kakao.maps.services;
   return new Promise(res => new S.Geocoder().addressSearch(q, (r, st) => {
@@ -159,7 +163,8 @@ function drawKakao(el, id, center, pins, opts) {
 
 // ---- Render ------------------------------------------------------------------------------
 function showView(v) {
-  view = v; ["home", "results", "detail"].forEach(n => $(n).hidden = n !== v); window.scrollTo(0, 0);
+  view = v; ["home", "results", "detail"].forEach(n => $(n).hidden = n !== v); if (scrollY) window.scrollTo(0, 0);
+  if (v !== "home") loadKakao();
   if (v === "home") renderHome(); else if (v === "results") render(); else renderDetail();
 }
 function renderHome() { const m = moment();
