@@ -8,8 +8,8 @@
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 
 export const SITE_NAME = "심야약국";
-const prodHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-export const SITE_URL = (process.env.SITE_URL || (prodHost ? "https://" + prodHost : "https://simya-yakguk.vercel.app")).replace(/\/$/, "");
+// The one public address. simya-yakguk.vercel.app and www 301 here (vercel.json / Vercel domain settings).
+export const SITE_URL = (process.env.SITE_URL || "https://kpharmacy24.com").replace(/\/$/, "");
 const PREVIEW = process.env.VERCEL_ENV === "preview";
 
 const pub = new URL("../public/", import.meta.url);
@@ -227,8 +227,7 @@ export async function buildSeo() {
   const tags = [["google-site-verification", process.env.GOOGLE_SITE_VERIFICATION], ["naver-site-verification", process.env.NAVER_SITE_VERIFICATION]]
     .flatMap(([n, v]) => (v || "").split(",").map(s => s.trim()).filter(Boolean).map(s => `<meta name="${n}" content="${esc(s)}">`)).join("\n");
   const indexUrl = new URL("index.html", pub), index = await readFile(indexUrl, "utf8");
-  // index.html is written against the vercel.app address; point its canonical, og and JSON-LD URLs at the real one.
-  let out = index.replaceAll("https://simya-yakguk.vercel.app", SITE_URL).replace(/<!-- site-verification -->[\s\S]*?<!-- \/site-verification -->/, `<!-- site-verification -->${tags ? "\n" + tags + "\n" : ""}<!-- /site-verification -->`);
+  let out = index.replace(/<!-- site-verification -->[\s\S]*?<!-- \/site-verification -->/, `<!-- site-verification -->${tags ? "\n" + tags + "\n" : ""}<!-- /site-verification -->`);
   if (PREVIEW) out = out.replace("<!-- /site-verification -->", `<!-- /site-verification -->\n<meta name="robots" content="noindex">`);
   if (out !== index) await writeFile(indexUrl, out);
   console.log(`seo: ${pages.length} region pages, ${urls.length} sitemap urls (${SITE_URL})${PREVIEW ? " [preview: noindex]" : ""}`);
