@@ -8,8 +8,8 @@
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 
 export const SITE_NAME = "심야약국";
-const prodHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-export const SITE_URL = (process.env.SITE_URL || (prodHost ? "https://" + prodHost : "https://simya-yakguk.vercel.app")).replace(/\/$/, "");
+// The one public address. simya-yakguk.vercel.app and www 301 here (vercel.json / Vercel domain settings).
+export const SITE_URL = (process.env.SITE_URL || "https://kpharmacy24.com").replace(/\/$/, "");
 const PREVIEW = process.env.VERCEL_ENV === "preview";
 
 const pub = new URL("../public/", import.meta.url);
@@ -223,8 +223,9 @@ export async function buildSeo() {
   await writeFile(new URL("robots.txt", pub), PREVIEW ? "User-agent: *\nDisallow: /\n" : `User-agent: *\nAllow: /\nDisallow: /data/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 
   // Search Console / Search Advisor ownership tags (public values, set as Vercel environment variables).
+  // Several values may be comma-separated: each domain registered in Search Advisor gets its own Naver tag.
   const tags = [["google-site-verification", process.env.GOOGLE_SITE_VERIFICATION], ["naver-site-verification", process.env.NAVER_SITE_VERIFICATION]]
-    .filter(([, v]) => v).map(([n, v]) => `<meta name="${n}" content="${esc(v.trim())}">`).join("\n");
+    .flatMap(([n, v]) => (v || "").split(",").map(s => s.trim()).filter(Boolean).map(s => `<meta name="${n}" content="${esc(s)}">`)).join("\n");
   const indexUrl = new URL("index.html", pub), index = await readFile(indexUrl, "utf8");
   let out = index.replace(/<!-- site-verification -->[\s\S]*?<!-- \/site-verification -->/, `<!-- site-verification -->${tags ? "\n" + tags + "\n" : ""}<!-- /site-verification -->`);
   if (PREVIEW) out = out.replace("<!-- /site-verification -->", `<!-- /site-verification -->\n<meta name="robots" content="noindex">`);
