@@ -57,9 +57,9 @@ function hoursSummary(h) {
 }
 
 // ---- HTML -----------------------------------------------------------------------------------
-const CSS = `:root{--bg:#f5faf7;--surface:#fff;--fg:#22302a;--muted:#56635c;--line:#dcebe2;--accent:#1e9e5e;--accent-ink:#17804b;--accent-soft:#e7f6ee;--warn:#a65800;--warn-soft:#fff1dc;--off:#8b9892;--font-display:"Jua","Apple SD Gothic Neo","Malgun Gothic",sans-serif;--font-body:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",sans-serif}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101a15;--surface:#18251e;--fg:#e6f1ea;--muted:#a2b5aa;--line:#2a3d33;--accent:#3fc582;--accent-ink:#6fdca6;--accent-soft:#1b3a2b;--warn:#ffbf7f;--warn-soft:#3d2c1d;--off:#6f8279;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#101a15;--surface:#18251e;--fg:#e6f1ea;--muted:#a2b5aa;--line:#2a3d33;--accent:#3fc582;--accent-ink:#6fdca6;--accent-soft:#1b3a2b;--warn:#ffbf7f;--warn-soft:#3d2c1d;--off:#6f8279;color-scheme:dark}
+const CSS = `:root{--bg:#f5faf7;--surface:#fff;--fg:#22302a;--muted:#56635c;--line:#dcebe2;--accent:#1e9e5e;--accent-ink:#157a48;--accent-btn:#178650;--accent-soft:#e7f6ee;--warn:#a65800;--warn-soft:#fff1dc;--off:#8b9892;--font-display:"Jua","Apple SD Gothic Neo","Malgun Gothic",sans-serif;--font-body:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101a15;--surface:#18251e;--fg:#e6f1ea;--muted:#a2b5aa;--line:#2a3d33;--accent:#3fc582;--accent-btn:#3fc582;--accent-ink:#6fdca6;--accent-soft:#1b3a2b;--warn:#ffbf7f;--warn-soft:#3d2c1d;--off:#6f8279;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101a15;--surface:#18251e;--fg:#e6f1ea;--muted:#a2b5aa;--line:#2a3d33;--accent:#3fc582;--accent-btn:#3fc582;--accent-ink:#6fdca6;--accent-soft:#1b3a2b;--warn:#ffbf7f;--warn-soft:#3d2c1d;--off:#6f8279;color-scheme:dark}
 *{box-sizing:border-box}body{margin:0;background:var(--surface);color:var(--fg);font-family:var(--font-body);font-size:16px;line-height:1.6}
 a{color:var(--accent-ink)}.wrap{max-width:880px;margin:0 auto;padding:0 18px}.disp,h1,h2,h3{font-family:var(--font-display);font-weight:400}
 .bar{border-bottom:1px solid var(--line)}.bar .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:10px}
@@ -67,7 +67,7 @@ a{color:var(--accent-ink)}.wrap{max-width:880px;margin:0 auto;padding:0 18px}.di
 .crumb{font-size:14px;color:var(--muted);margin:18px 0 6px}.crumb a{color:var(--muted)}
 h1{font-size:clamp(26px,6vw,36px);line-height:1.3;margin:0 0 8px}h2{font-size:22px;margin:34px 0 10px}h3{font-size:18px;margin:22px 0 8px;color:var(--accent-ink)}
 .lead{color:var(--muted);margin:0 0 16px}.cta{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
-.btn{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 20px;border-radius:20px;background:var(--accent);color:#fff;font-family:var(--font-display);font-size:17px;text-decoration:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 20px;border-radius:20px;background:var(--accent-btn);color:#fff;font-family:var(--font-display);font-size:17px;text-decoration:none}
 .btn.soft{background:var(--accent-soft);color:var(--accent-ink)}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0}.stats div{background:var(--bg);border-radius:18px;padding:12px 14px}.stats b{display:block;font-family:var(--font-display);font-weight:400;font-size:24px;color:var(--accent-ink)}.stats span{font-size:14px;color:var(--muted)}
 .mini{list-style:none;padding:0;margin:0;display:grid;gap:6px}.mini li{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;border-radius:14px;background:var(--bg)}.mini li span{color:var(--muted);font-size:14px;text-align:right}
@@ -102,7 +102,7 @@ function page({ path, title, desc, crumbs, body, ld, hasNow }) {
 <meta property="og:image" content="${SITE_URL}/og.png"><meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#1e9e5e">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap"></noscript>
 <style>${CSS}</style>
 <script type="application/ld+json">${JSON.stringify(graph).replace(/</g, "\\u003c")}</script>
 </head>

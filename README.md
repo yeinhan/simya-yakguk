@@ -6,7 +6,7 @@
 - `scripts/update-data.mjs` : 공공데이터포털 "전국 약국 정보 조회 서비스"를 받아 `public/data/g/*.json`(0.1° 격자)로 저장
 - `.github/workflows/update-data.yml` : 매일 03:00(KST) 실행, 변경분 커밋
 - `public/` : 사이트. 카카오 지도 키가 없으면 간이 지도로 동작
-- `scripts/build.mjs` : Vercel 빌드 시 `KAKAO_JS_KEY` → `public/config.js`, 그리고 검색엔진용 페이지 생성
+- `scripts/build.mjs` : Vercel 빌드 시 `KAKAO_JS_KEY` → `public/config.js`, 그리고 검색엔진용 페이지 생성. 빌드 때 첫 화면 속도 최적화(설정 인라인, app.js 버전 붙이기, CSS 압축)도 함께 해요
 - `scripts/seo-pages.mjs` : 지역 페이지(`/서울/`, `/서울/관악구/` 등), `sitemap.xml`, `robots.txt` 생성. 데이터가 매일 갱신되면 재배포되면서 같이 갱신
 - 약국 상세의 길 안내: 카카오맵 / 네이버지도 버튼 (키 필요 없음). 휴대폰에선 네이버지도 앱을 열고, 앱이 없거나 PC면 네이버지도 웹 검색으로 열림
 

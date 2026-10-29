@@ -1,1 +1,10 @@
-{ "buildCommand": "node scripts/build.mjs", "outputDirectory": "public", "trailingSlash": true }
+{
+  "buildCommand": "node scripts/build.mjs",
+  "outputDirectory": "public",
+  "trailingSlash": true,
+  "headers": [
+    { "source": "/app.js", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] },
+    { "source": "/(favicon.svg|apple-touch-icon.png|og.png)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800, stale-while-revalidate=86400" }] },
+    { "source": "/data/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }] }
+  ]
+}
