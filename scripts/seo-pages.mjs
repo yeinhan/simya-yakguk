@@ -8,8 +8,8 @@
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 
 export const SITE_NAME = "심야약국";
-// The one public address. simya-yakguk.vercel.app and www 301 here (vercel.json / Vercel domain settings).
-export const SITE_URL = (process.env.SITE_URL || "https://kpharmacy24.com").replace(/\/$/, "");
+// The one public address. simya-yakguk.vercel.app and kpharmacy24.com redirect here (vercel.json / Vercel domain settings).
+export const SITE_URL = (process.env.SITE_URL || "https://www.kpharmacy24.com").replace(/\/$/, "");
 const PREVIEW = process.env.VERCEL_ENV === "preview";
 
 const pub = new URL("../public/", import.meta.url);
