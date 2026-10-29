@@ -24,6 +24,10 @@
 - 리다이렉트·캐시: `public/_redirects`, `public/_headers` (vercel.json과 같은 내용 유지). `*.pages.dev` 주소는 검색 제외(noindex) 헤더가 붙고, 대표 주소로 보내는 건 Cloudflare Bulk Redirects에서 설정
 - 사용자 지정 도메인: `www.kpharmacy24.com`(대표), `kpharmacy24.com` → www 리다이렉트 규칙
 
+## 광고 (애드센스)
+- 환경변수 `ADSENSE_CLIENT`(예: `ca-pub-1234567890`)를 넣으면 모든 페이지에 애드센스 코드, `/ads.txt`가 생겨요. 비우면 광고 코드 없음
+- `CONTACT_EMAIL`을 넣으면 `/privacy/`(개인정보처리방침)에 문의 메일로 표시
+
 ## 로컬 실행
 ```
 node scripts/sample-data.mjs && node scripts/build.mjs && npx serve public
