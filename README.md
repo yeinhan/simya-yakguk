@@ -6,8 +6,8 @@
 - `scripts/update-data.mjs` : 공공데이터포털 "전국 약국 정보 조회 서비스"를 받아 `public/data/g/*.json`(0.1° 격자)로 저장
 - `.github/workflows/update-data.yml` : 매일 03:00(KST) 실행, 변경분 커밋
 - `public/` : 사이트. 카카오 지도 키가 없으면 간이 지도로 동작
-- `scripts/build.mjs` : Vercel 빌드 시 `KAKAO_JS_KEY` → `public/config.js`, 그리고 검색엔진용 페이지 생성. 빌드 때 첫 화면 속도 최적화(설정 인라인, app.js 버전 붙이기, CSS 압축)도 함께 해요
-- `scripts/seo-pages.mjs` : 지역 페이지(`/pharmacy/서울/`, `/pharmacy/서울/관악구/` 등, 옛 주소는 vercel.json에서 301 이동), `sitemap.xml`, `robots.txt` 생성. 데이터가 매일 갱신되면 재배포되면서 같이 갱신
+- `scripts/build.mjs` : 배포(Vercel 또는 Cloudflare Pages) 빌드 시 `KAKAO_JS_KEY` → `public/config.js`, 그리고 검색엔진용 페이지 생성. 빌드 때 첫 화면 속도 최적화(설정 인라인, app.js 버전 붙이기, CSS 압축)도 함께 해요
+- `scripts/seo-pages.mjs` : 지역 페이지(`/pharmacy/서울/`, `/pharmacy/서울/관악구/` 등, 옛 주소는 vercel.json / `public/_redirects`에서 301 이동), 없는 주소용 `404.html`, `sitemap.xml`, `robots.txt` 생성. 데이터가 매일 갱신되면 재배포되면서 같이 갱신
 - 약국 상세의 길 안내: 카카오맵 / 네이버지도 버튼 (키 필요 없음). 휴대폰에선 네이버지도 앱을 열고, 앱이 없거나 PC면 네이버지도 웹 검색으로 열림
 
 ## 설정
@@ -16,6 +16,17 @@
 3. Vercel에서 저장소 import, 환경변수 `KAKAO_JS_KEY`(JavaScript 키) 추가
 4. 카카오 개발자 콘솔 → 플랫폼 → Web에 배포 도메인 등록, 카카오맵 사용 ON
 5. (검색 등록) Vercel 환경변수 `NAVER_SITE_VERIFICATION`, `GOOGLE_SITE_VERIFICATION`에 소유확인 메타태그의 content 값을 넣고 재배포. 도메인을 바꾸면 `SITE_URL`(예: `https://example.com`)도 설정
+
+## Cloudflare Pages로 배포
+- Workers & Pages → 만들기 → Pages → Git 연결 → 이 저장소, 프로덕션 브랜치 `main`
+- 빌드 명령 `node scripts/build.mjs`, 출력 디렉터리 `public` (Node 버전은 `.node-version`)
+- 환경변수: `KAKAO_JS_KEY`, `NAVER_SITE_VERIFICATION*`, `GOOGLE_SITE_VERIFICATION*` (Vercel과 같은 값)
+- 리다이렉트·캐시: `public/_redirects`, `public/_headers` (vercel.json과 같은 내용 유지). `*.pages.dev` 주소는 검색 제외(noindex) 헤더가 붙고, 대표 주소로 보내는 건 Cloudflare Bulk Redirects에서 설정
+- 사용자 지정 도메인: `www.kpharmacy24.com`(대표), `kpharmacy24.com` → www 리다이렉트 규칙
+
+## 광고 (애드센스)
+- 환경변수 `ADSENSE_CLIENT`(예: `ca-pub-1234567890`)를 넣으면 모든 페이지에 애드센스 코드, `/ads.txt`가 생겨요. 비우면 광고 코드 없음
+- `CONTACT_EMAIL`을 넣으면 `/privacy/`(개인정보처리방침)에 문의 메일로 표시
 
 ## 로컬 실행
 ```

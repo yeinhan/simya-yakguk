@@ -2,15 +2,22 @@
 //   /pharmacy/                        all regions
 //   /pharmacy/<시도>/                 e.g. /pharmacy/서울/        districts with counts + pharmacies open past midnight
 //   /pharmacy/<시도>/<시군구>/        e.g. /pharmacy/서울/관악구/  24-hour, night, Sunday and holiday pharmacies, then every pharmacy by 동
-// The old /<시도>/... and /지역/ addresses 301 to these (vercel.json).
-//   /sitemap.xml, /robots.txt
-// Also fills the site-verification marker in public/index.html from NAVER_SITE_VERIFICATION* / GOOGLE_SITE_VERIFICATION*.
+// The old /<시도>/... and /지역/ addresses 301 to these (vercel.json, public/_redirects).
+//   /sitemap.xml, /robots.txt, /404.html
+//   /privacy/, and /ads.txt when ADSENSE_CLIENT is set
+// Also fills the site-verification marker in public/index.html from NAVER_SITE_VERIFICATION* / GOOGLE_SITE_VERIFICATION*
+// (plus the AdSense script when ADSENSE_CLIENT is set).
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 
 export const SITE_NAME = "심야약국";
 // The one public address. simya-yakguk.vercel.app and kpharmacy24.com redirect here (vercel.json / Vercel domain settings).
 export const SITE_URL = (process.env.SITE_URL || "https://www.kpharmacy24.com").replace(/\/$/, "");
-const PREVIEW = process.env.VERCEL_ENV === "preview";
+// Google AdSense publisher id (ca-pub-…, public by design). Unset = no ad code and no ads.txt anywhere.
+const ADSENSE = /^ca-pub-\d+$/.test((process.env.ADSENSE_CLIENT || "").trim()) ? process.env.ADSENSE_CLIENT.trim() : "";
+const ADSENSE_TAG = ADSENSE ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE}" crossorigin="anonymous"></script>` : "";
+const CONTACT = (process.env.CONTACT_EMAIL || "").trim();
+// Preview builds (pull requests, other branches) tell search engines to stay away.
+const PREVIEW = process.env.VERCEL_ENV === "preview" || (!!process.env.CF_PAGES && process.env.CF_PAGES_BRANCH !== "main");
 
 const pub = new URL("../public/", import.meta.url);
 const SIDO = {
@@ -107,6 +114,7 @@ function page({ path, title, desc, crumbs, body, ld, hasNow }) {
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap"></noscript>
 <style>${CSS}</style>
+${ADSENSE_TAG}
 <script type="application/ld+json">${JSON.stringify(graph).replace(/</g, "\\u003c")}</script>
 </head>
 <body>
@@ -115,7 +123,7 @@ function page({ path, title, desc, crumbs, body, ld, hasNow }) {
 <nav class="crumb" aria-label="현재 위치">${crumbs.map(([n, p], i) => i === crumbs.length - 1 ? esc(n) : `<a href="${esc(p)}">${esc(n)}</a> › `).join("")}</nav>
 ${body}
 </main>
-<footer class="foot"><div class="wrap"><b class="disp" style="font-size:16px;color:var(--fg)">${SITE_NAME}</b><span>약국 정보 출처: 국립중앙의료원 전국 약국 정보 (공공데이터포털), 매일 갱신</span><span>운영시간은 약국 사정으로 바뀔 수 있어요. 방문 전에 전화로 확인하세요.</span><span><a href="/pharmacy/">전국 지역별 약국</a></span></div></footer>
+<footer class="foot"><div class="wrap"><b class="disp" style="font-size:16px;color:var(--fg)">${SITE_NAME}</b><span>약국 정보 출처: 국립중앙의료원 전국 약국 정보 (공공데이터포털), 매일 갱신</span><span>운영시간은 약국 사정으로 바뀔 수 있어요. 방문 전에 전화로 확인하세요.</span><span><a href="/pharmacy/">전국 지역별 약국</a> · <a href="/privacy/">개인정보처리방침</a></span></div></footer>
 ${hasNow ? `<script>${NOW_JS}</script>` : ""}
 </body>
 </html>
@@ -195,6 +203,24 @@ ${SIDO_ORDER.filter(s => bySido.has(s)).map(s => { const { gus, list } = bySido.
 }
 
 // ---- Build --------------------------------------------------------------------------------------
+function privacyPage() {
+  const path = "/privacy/";
+  const body = `<h1>개인정보처리방침</h1>
+<p>${SITE_NAME}(${esc(SITE_URL.replace(/^https?:\/\//, ""))})은 회원가입이 없고, 이름·전화번호 같은 개인정보를 직접 받거나 저장하지 않아요.</p>
+<h2>내 위치</h2>
+<p>‘내 주변 찾기’를 누르면 브라우저가 위치 사용을 물어봐요. 허용하면 위치는 휴대폰·PC 안에서 가까운 약국을 고르는 데만 쓰이고, 저장하지 않아요. 주변 약국 목록을 불러올 때 대략적인 지역 단위의 데이터 파일을 요청하게 돼요.</p>
+<h2>검색어와 지도</h2>
+<p>동 이름·주소 검색과 지도 표시는 카카오 지도 서비스를 이용해요. 검색어와 지도 요청은 카카오로 전달되며 <a href="https://www.kakao.com/policy/privacy" rel="noopener">카카오 개인정보처리방침</a>을 따릅니다.</p>
+<h2>접속 기록</h2>
+<p>사이트를 전달하는 호스팅 업체(Cloudflare)가 보안과 장애 대응을 위해 IP 주소, 접속 시간, 브라우저 정보 같은 기록을 자동으로 남길 수 있어요.</p>
+<h2>광고와 쿠키</h2>
+<p>이 사이트는 Google 애드센스 광고를 보여줄 수 있어요. Google 등 광고 업체는 쿠키를 사용해 이 사이트와 다른 사이트 방문 기록을 바탕으로 광고를 보여줄 수 있어요. 맞춤 광고는 <a href="https://adssettings.google.com" rel="noopener">Google 광고 설정</a>에서 끌 수 있고, 자세한 내용은 <a href="https://policies.google.com/technologies/ads?hl=ko" rel="noopener">Google의 광고 정책</a>에서 볼 수 있어요. 브라우저 설정에서 쿠키를 막을 수도 있어요.</p>
+<h2>문의</h2>
+<p>${CONTACT ? `개인정보 관련 문의: <a href="mailto:${esc(CONTACT)}">${esc(CONTACT)}</a>` : "개인정보 관련 문의는 사이트 운영자에게 해 주세요."}</p>
+<p>시행일: 2026년 10월 29일</p>`;
+  return { path, html: page({ path, title: `개인정보처리방침 | ${SITE_NAME}`, desc: `${SITE_NAME}의 개인정보 처리, 위치 정보, 광고 쿠키 안내`, crumbs: [["홈", "/"], ["개인정보처리방침", path]], body }) };
+}
+
 async function put(path, html) { const dir = new URL("." + decodeURIComponent(path), pub); await mkdir(dir, { recursive: true }); await writeFile(new URL("index.html", dir), html); }
 
 export async function buildSeo() {
@@ -218,16 +244,27 @@ export async function buildSeo() {
   }
   for (const p of pages) await put(p.path, p.html);
 
+  // Not-found page. Cloudflare Pages serves it with a real 404; without it every unknown address would get the home page.
+  const notFound = page({ path: "/404.html", title: `페이지를 찾을 수 없어요 | ${SITE_NAME}`, desc: "주소가 바뀌었거나 없는 페이지예요.", crumbs: [["홈", "/"], ["찾을 수 없음", "/404.html"]],
+    body: `<h1>페이지를 찾을 수 없어요</h1><p>주소가 바뀌었거나 없는 페이지예요.</p><p><a class="btn" href="/">내 주변 문 연 약국 찾기</a> <a class="btn soft" href="/pharmacy/">지역별 약국 보기</a></p>` });
+  await writeFile(new URL("404.html", pub), notFound.replace(/<link rel="canonical"[^>]*>/, '<meta name="robots" content="noindex">'));
+
+  // Privacy policy (AdSense review expects one; also says what the ads' cookies do).
+  pages.push(privacyPage());
+  await put("/privacy/", pages[pages.length - 1].html);
+  if (ADSENSE) await writeFile(new URL("ads.txt", pub), `google.com, ${ADSENSE.replace(/^ca-/, "")}, DIRECT, f08c47fec0942fa0\n`);
+  else await rm(new URL("ads.txt", pub), { force: true });
+
   const urls = ["/", ...pages.map(p => p.path)];
   await writeFile(new URL("sitemap.xml", pub), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(u => `<url><loc>${esc(SITE_URL + u)}</loc><lastmod>${updated}</lastmod></url>`).join("\n")}\n</urlset>\n`);
   await writeFile(new URL("robots.txt", pub), PREVIEW ? "User-agent: *\nDisallow: /\n" : `User-agent: *\nAllow: /\nDisallow: /data/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 
-  // Search Console / Search Advisor ownership tags (public values, set as Vercel environment variables).
+  // Search Console / Search Advisor ownership tags (public values, set as Vercel / Cloudflare Pages environment variables).
   // One tag per registered address: values may be comma-separated, or split over NAVER_SITE_VERIFICATION2, ...3 and so on.
   const env = Object.entries(process.env).sort(([a], [b]) => a.localeCompare(b));
   const tags = [["google-site-verification", "GOOGLE_SITE_VERIFICATION"], ["naver-site-verification", "NAVER_SITE_VERIFICATION"]]
     .flatMap(([n, key]) => env.filter(([k]) => k.startsWith(key)).flatMap(([, v]) => v.split(",")).map(s => s.trim()).filter(Boolean)
-      .map(s => `<meta name="${n}" content="${esc(s)}">`)).join("\n");
+      .map(s => `<meta name="${n}" content="${esc(s)}">`)).concat(ADSENSE_TAG || []).join("\n");
   const indexUrl = new URL("index.html", pub), index = await readFile(indexUrl, "utf8");
   let out = index.replace(/<!-- site-verification -->[\s\S]*?<!-- \/site-verification -->/, `<!-- site-verification -->${tags ? "\n" + tags + "\n" : ""}<!-- /site-verification -->`);
   if (PREVIEW) out = out.replace("<!-- /site-verification -->", `<!-- /site-verification -->\n<meta name="robots" content="noindex">`);
