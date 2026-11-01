@@ -3,11 +3,14 @@
 //   /pharmacy/<시도>/                 e.g. /pharmacy/서울/        districts with counts + pharmacies open past midnight
 //   /pharmacy/<시도>/<시군구>/        e.g. /pharmacy/서울/관악구/  24-hour, night, Sunday and holiday pharmacies, then every pharmacy by 동
 // The old /<시도>/... and /지역/ addresses 301 to these (vercel.json, public/_redirects).
-//   /sitemap.xml, /robots.txt, /404.html
+//   /sitemap.xml, /rss.xml, /robots.txt, /404.html
+//   Each page's <lastmod> / RSS date is the day its content last changed, from seo/lastmod.json (kept by scripts/lastmod.mjs in the
+//   daily data workflow), so search engines can trust it instead of seeing every page "changed" every day.
 //   /privacy/, and /ads.txt when ADSENSE_CLIENT is set; Kakao AdFit slots on region pages and the home page when ADFIT_UNIT is set
 // Also fills the site-verification marker in public/index.html from NAVER_SITE_VERIFICATION* / GOOGLE_SITE_VERIFICATION*
 // (plus the AdSense script when ADSENSE_CLIENT is set).
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 
 export const SITE_NAME = "심야약국";
 // The one public address. simya-yakguk.vercel.app and kpharmacy24.com redirect here (vercel.json / Vercel domain settings).
@@ -61,7 +64,7 @@ function enrich(p) {
 async function loadAll() {
   const dir = new URL("data/g/", pub), list = [];
   for (const f of await readdir(dir)) if (f.endsWith(".json")) list.push(...JSON.parse(await readFile(new URL(f, dir), "utf8")));
-  return list.filter(p => place(p)).map(enrich).sort((a, b) => a.n.localeCompare(b.n, "ko"));
+  return list.filter(p => place(p)).map(enrich).sort((a, b) => a.n.localeCompare(b.n, "ko") || (a.id < b.id ? -1 : a.id > b.id));
 }
 function hoursSummary(h) {
   const wk = h.slice(0, 5), parts = [];
@@ -115,6 +118,7 @@ function page({ path, title, desc, crumbs, body, ld, hasNow, ad }) {
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="${esc(url)}">
 <meta property="og:image" content="${SITE_URL}/og.png"><meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#1e9e5e">
+<link rel="alternate" type="application/rss+xml" title="${SITE_NAME} 업데이트" href="/rss.xml">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap"></noscript>
 <style>${CSS}</style>
@@ -179,7 +183,7 @@ ${always.length ? `<h2>${esc(name)} 연중무휴 약국</h2><ul class="mini">${a
 ${dongs.map((d, i) => `<h3 id="d${i}">${esc(name)} ${esc(d)} 약국</h3><div class="cards">${byDong.get(d).map(card).join("")}</div>`).join("\n")}`;
   const crumbs = [[SITE_NAME, "/"], ["지역별", urlPath()], [sido, urlPath(sido)], ...(gu ? [[gu, path]] : [])];
   const ld = [{ "@type": "ItemList", name: `${full} 심야약국`, itemListElement: late.slice(0, 30).map((p, i) => ({ "@type": "ListItem", position: i + 1, item: pharmacyLD(p) })) }];
-  return { path, html: page({ path, title, desc, crumbs, body, ld, hasNow: true, ad: true }) };
+  return { path, title, desc, html: page({ path, title, desc, crumbs, body, ld, hasNow: true, ad: true }) };
 }
 
 function sidoPage(sido, sidoFull, gus, list, updated) {
@@ -195,7 +199,7 @@ function sidoPage(sido, sidoFull, gus, list, updated) {
 <ul class="grid">${gus.map(([g, l]) => `<li><a href="${esc(urlPath(sido, g))}">${esc(g)} <small>심야 ${l.filter(p => p.late).length} · 전체 ${l.length}</small></a></li>`).join("")}</ul>
 <h2>${esc(sido)}에서 밤 12시 넘어서까지 여는 약국</h2>
 ${late.length ? `<ul class="mini">${late.slice(0, 80).map(p => miniRow(p, `${p.gu} ${p.dong} · ${p.full ? "24시간" : clock(p.close) + "까지"}`, urlPath(sido, p.gu) + "#" + anchor(p))).join("")}</ul>` : `<p>밤 12시 넘어서까지 여는 약국 정보가 없어요. 시·군·구 페이지에서 밤 10시 이후 약국을 확인해 보세요.</p>`}`;
-  return { path, html: page({ path, title, desc, crumbs: [[SITE_NAME, "/"], ["지역별", urlPath()], [sido, path]], body, ad: true }) };
+  return { path, title, desc, html: page({ path, title, desc, crumbs: [[SITE_NAME, "/"], ["지역별", urlPath()], [sido, path]], body, ad: true }) };
 }
 
 function indexPage(bySido, updated) {
@@ -204,7 +208,8 @@ function indexPage(bySido, updated) {
 <p class="lead">시·도와 시·군·구를 골라 밤늦게, 일요일, 공휴일에 여는 약국을 확인하세요. (데이터 기준 ${updated})</p>
 ${SIDO_ORDER.filter(s => bySido.has(s)).map(s => { const { gus, list } = bySido.get(s);
     return `<h2><a href="${esc(urlPath(s))}">${esc(s)}</a> <small style="font-size:15px;color:var(--muted)">${list.length}곳</small></h2>${gus.length ? `<ul class="grid">${gus.map(([g]) => `<li><a href="${esc(urlPath(s, g))}">${esc(g)}</a></li>`).join("")}</ul>` : ""}`; }).join("\n")}`;
-  return { path, html: page({ path, title: `전국 지역별 응급약국 · 24시 약국 · 심야약국 | ${SITE_NAME}`, desc: "서울, 경기, 부산 등 전국 시·군·구별로 응급약국, 24시 약국, 밤늦게·일요일·공휴일에 문 여는 약국과 영업시간을 확인하세요.", crumbs: [[SITE_NAME, "/"], ["지역별", path]], body, ad: true }) };
+  const title = `전국 지역별 응급약국 · 24시 약국 · 심야약국 | ${SITE_NAME}`, desc = "서울, 경기, 부산 등 전국 시·군·구별로 응급약국, 24시 약국, 밤늦게·일요일·공휴일에 문 여는 약국과 영업시간을 확인하세요.";
+  return { path, title, desc, html: page({ path, title, desc, crumbs: [[SITE_NAME, "/"], ["지역별", path]], body, ad: true }) };
 }
 
 // ---- Build --------------------------------------------------------------------------------------
@@ -223,15 +228,18 @@ function privacyPage() {
 <h2>문의</h2>
 <p>${CONTACT ? `개인정보 관련 문의: <a href="mailto:${esc(CONTACT)}">${esc(CONTACT)}</a>` : "개인정보 관련 문의는 사이트 운영자에게 해 주세요."}</p>
 <p>시행일: 2026년 10월 29일</p>`;
-  return { path, html: page({ path, title: `개인정보처리방침 | ${SITE_NAME}`, desc: `${SITE_NAME}의 개인정보 처리, 위치 정보, 광고 쿠키 안내`, crumbs: [["홈", "/"], ["개인정보처리방침", path]], body }) };
+  const title = `개인정보처리방침 | ${SITE_NAME}`, desc = `${SITE_NAME}의 개인정보 처리, 위치 정보, 광고 쿠키 안내`;
+  return { path, title, desc, html: page({ path, title, desc, crumbs: [["홈", "/"], ["개인정보처리방침", path]], body }) };
 }
 
 async function put(path, html) { const dir = new URL("." + decodeURIComponent(path), pub); await mkdir(dir, { recursive: true }); await writeFile(new URL("index.html", dir), html); }
 
-export async function buildSeo() {
+// Every indexable page as { path, title, desc, html }; also used by scripts/lastmod.mjs to see which pages changed.
+export async function renderPages() {
   const all = await loadAll();
   const meta = JSON.parse(await readFile(new URL("data/meta.json", pub), "utf8").catch(() => "{}"));
-  const updated = (meta.updatedAt || new Date().toISOString()).slice(0, 10);
+  // Korean date: the 03:00 KST update is still the previous day in UTC.
+  const updated = new Date(new Date(meta.updatedAt || Date.now()).getTime() + 9 * 3600e3).toISOString().slice(0, 10);
   const full = {}; Object.entries(SIDO).forEach(([f, s]) => full[s] ??= f);
   all.forEach(p => { const f = p.a.split(/\s+/)[0]; if (SIDO[f] === p.sido) full[p.sido] = f; });
 
@@ -239,14 +247,28 @@ export async function buildSeo() {
   for (const p of all) { const s = bySido.get(p.sido) || bySido.set(p.sido, { list: [], gu: new Map() }).get(p.sido); s.list.push(p); if (p.gu) (s.gu.get(p.gu) || s.gu.set(p.gu, []).get(p.gu)).push(p); }
   for (const s of bySido.values()) s.gus = [...s.gu].sort((a, b) => a[0].localeCompare(b[0], "ko"));
 
-  for (const s of SIDO_ORDER) await rm(new URL(s + "/", pub), { recursive: true, force: true }); // pre-/pharmacy/ output
-  await rm(new URL("지역/", pub), { recursive: true, force: true });
-  await rm(new URL(BASE + "/", pub), { recursive: true, force: true });
   const pages = [indexPage(bySido, updated)];
   for (const [s, { list, gus }] of bySido) {
     if (!gus.length) pages.push(districtPage(s, "", list, full[s], updated)); // 세종: one page for the whole city
     else { pages.push(sidoPage(s, full[s], gus, list, updated)); for (const [g, l] of gus) pages.push(districtPage(s, g, l, full[s], updated)); }
   }
+  pages.push(privacyPage()); // AdSense review expects one; also says what the ads' cookies do
+  return { pages, updated };
+}
+
+// What counts as "the content changed": the page minus its "데이터 기준 <date>" stamp.
+export const contentHash = (html, updated) => createHash("sha256").update(html.split(updated).join("")).digest("hex").slice(0, 16);
+export const LASTMOD_FILE = new URL("../seo/lastmod.json", import.meta.url);
+export const readLastmod = async () => JSON.parse(await readFile(LASTMOD_FILE, "utf8").catch(() => "{}"));
+
+// RFC 822 date for RSS, at 03:00 KST (when the daily data update runs).
+const rssDate = d => new Date(d + "T03:00:00+09:00").toUTCString().replace("GMT", "+0000");
+
+export async function buildSeo() {
+  const { pages, updated } = await renderPages();
+  for (const s of SIDO_ORDER) await rm(new URL(s + "/", pub), { recursive: true, force: true }); // pre-/pharmacy/ output
+  await rm(new URL("지역/", pub), { recursive: true, force: true });
+  await rm(new URL(BASE + "/", pub), { recursive: true, force: true });
   for (const p of pages) await put(p.path, p.html);
 
   // Not-found page. Cloudflare Pages serves it with a real 404; without it every unknown address would get the home page.
@@ -254,14 +276,29 @@ export async function buildSeo() {
     body: `<h1>페이지를 찾을 수 없어요</h1><p>주소가 바뀌었거나 없는 페이지예요.</p><p><a class="btn" href="/">내 주변 문 연 약국 찾기</a> <a class="btn soft" href="/pharmacy/">지역별 약국 보기</a></p>` });
   await writeFile(new URL("404.html", pub), notFound.replace(/<link rel="canonical"[^>]*>/, '<meta name="robots" content="noindex">'));
 
-  // Privacy policy (AdSense review expects one; also says what the ads' cookies do).
-  pages.push(privacyPage());
-  await put("/privacy/", pages[pages.length - 1].html);
   if (ADSENSE) await writeFile(new URL("ads.txt", pub), `google.com, ${ADSENSE.replace(/^ca-/, "")}, DIRECT, f08c47fec0942fa0\n`);
   else await rm(new URL("ads.txt", pub), { force: true });
 
+  // Pages the daily workflow hasn't seen yet (new regions, first run) count as changed today.
+  const mod = await readLastmod(), lastmod = path => mod[path]?.d || updated;
   const urls = ["/", ...pages.map(p => p.path)];
-  await writeFile(new URL("sitemap.xml", pub), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(u => `<url><loc>${esc(SITE_URL + u)}</loc><lastmod>${updated}</lastmod></url>`).join("\n")}\n</urlset>\n`);
+  await writeFile(new URL("sitemap.xml", pub), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(u => `<url><loc>${esc(SITE_URL + u)}</loc><lastmod>${lastmod(u)}</lastmod></url>`).join("\n")}\n</urlset>\n`);
+
+  // RSS of the most recently changed pages (Naver Search Advisor → 요청 → RSS 제출 picks up new/changed pages from it).
+  const feed = pages.filter(p => p.path !== "/privacy/").map(p => ({ ...p, d: lastmod(p.path) }))
+    .sort((a, b) => b.d.localeCompare(a.d) || a.path.localeCompare(b.path)).slice(0, 100);
+  const item = p => `<item><title>${esc(p.title.replace(/ \| [^|]+$/, ""))}</title><link>${esc(SITE_URL + p.path)}</link><guid isPermaLink="true">${esc(SITE_URL + p.path)}</guid><description>${esc(p.desc)}</description><pubDate>${rssDate(p.d)}</pubDate></item>`;
+  await writeFile(new URL("rss.xml", pub), `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel>
+<title>${SITE_NAME} - 응급약국 · 24시 약국 · 심야약국</title>
+<link>${SITE_URL}/</link>
+<atom:link href="${SITE_URL}/rss.xml" rel="self" type="application/rss+xml"/>
+<description>전국 지역별 응급약국, 24시 약국, 심야·일요일·공휴일 약국 영업시간. 공공데이터로 매일 갱신해요.</description>
+<language>ko</language>
+<lastBuildDate>${rssDate(feed[0]?.d || updated)}</lastBuildDate>
+${feed.map(item).join("\n")}
+</channel></rss>
+`);
   await writeFile(new URL("robots.txt", pub), PREVIEW ? "User-agent: *\nDisallow: /\n" : `User-agent: *\nAllow: /\nDisallow: /data/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 
   // Search Console / Search Advisor ownership tags (public values, set as Vercel / Cloudflare Pages environment variables).
@@ -275,5 +312,5 @@ export async function buildSeo() {
   out = out.replace(/<!-- ad-slot -->[\s\S]*?<!-- \/ad-slot -->/, `<!-- ad-slot -->${AD_SLOT}<!-- /ad-slot -->`);
   if (PREVIEW) out = out.replace("<!-- /site-verification -->", `<!-- /site-verification -->\n<meta name="robots" content="noindex">`);
   if (out !== index) await writeFile(indexUrl, out);
-  console.log(`seo: ${pages.length} region pages, ${urls.length} sitemap urls (${SITE_URL})${PREVIEW ? " [preview: noindex]" : ""}`);
+  console.log(`seo: ${pages.length} region pages, ${urls.length} sitemap urls, ${feed.length} rss items (${SITE_URL})${PREVIEW ? " [preview: noindex]" : ""}`);
 }
