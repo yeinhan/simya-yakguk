@@ -15,9 +15,10 @@ jobs:
       - run: node scripts/update-data.mjs
         env:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+      - run: node scripts/lastmod.mjs # which region pages actually changed today (sitemap lastmod / RSS dates)
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f public/data
+          git add -f public/data seo/lastmod.json
           git diff --cached --quiet || (git commit -m "chore: update pharmacy data" && git push)
