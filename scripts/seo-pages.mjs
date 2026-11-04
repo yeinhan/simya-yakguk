@@ -17,7 +17,9 @@ export const SITE_NAME = "심야약국";
 // The one public address. simya-yakguk.vercel.app and kpharmacy24.com redirect here (vercel.json / Vercel domain settings).
 export const SITE_URL = (process.env.SITE_URL || "https://www.kpharmacy24.com").replace(/\/$/, "");
 // Google AdSense publisher id (ca-pub-…, public by design). Unset = no ad code and no ads.txt anywhere.
-const ADSENSE = /^ca-pub-\d+$/.test((process.env.ADSENSE_CLIENT || "").trim()) ? process.env.ADSENSE_CLIENT.trim() : "";
+// Default is the site's own AdSense account; ADSENSE_CLIENT overrides it, and ADSENSE_CLIENT=off removes all ad code.
+const ADSENSE_ENV = (process.env.ADSENSE_CLIENT ?? "ca-pub-4223097014464348").trim();
+const ADSENSE = /^ca-pub-\d+$/.test(ADSENSE_ENV) ? ADSENSE_ENV : "";
 const ADSENSE_TAG = ADSENSE ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE}" crossorigin="anonymous"></script>` : "";
 // Kakao AdFit ad unit (DAN-…, public by design; size from ADFIT_SIZE, default 320x100). Unset = no ad slots anywhere.
 const ADFIT = /^DAN-[A-Za-z0-9]+$/.test((process.env.ADFIT_UNIT || "").trim()) ? process.env.ADFIT_UNIT.trim() : "";
