@@ -6,7 +6,8 @@
 //   /sitemap.xml, /rss.xml, /robots.txt, /404.html
 //   Each page's <lastmod> / RSS date is the day its content last changed, from seo/lastmod.json (kept by scripts/lastmod.mjs in the
 //   daily data workflow), so search engines can trust it instead of seeing every page "changed" every day.
-//   /privacy/, and /ads.txt when ADSENSE_CLIENT is set; Kakao AdFit slots on region pages and the home page when ADFIT_UNIT is set
+//   /pharmacy/공휴일/ and /pharmacy/공휴일/<성탄절|신정|설날>/   holiday pages (dates in HOLIDAYS below; add next year's when announced)
+//   /about/ (site intro + contact), /privacy/, and /ads.txt when ADSENSE_CLIENT is set; Kakao AdFit slots on region pages and the home page when ADFIT_UNIT is set
 // Also fills the site-verification marker in public/index.html from NAVER_SITE_VERIFICATION* / GOOGLE_SITE_VERIFICATION*
 // (plus the AdSense script when ADSENSE_CLIENT is set).
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -132,7 +133,7 @@ ${ADSENSE_TAG}
 ${body}
 ${ad ? AD_SLOT : ""}
 </main>
-<footer class="foot"><div class="wrap"><b class="disp" style="font-size:16px;color:var(--fg)">${SITE_NAME}</b><span>약국 정보 출처: 국립중앙의료원 전국 약국 정보 (공공데이터포털), 매일 갱신</span><span>운영시간은 약국 사정으로 바뀔 수 있어요. 방문 전에 전화로 확인하세요.</span><span><a href="/pharmacy/">전국 지역별 약국</a> · <a href="/privacy/">개인정보처리방침</a></span></div></footer>
+<footer class="foot"><div class="wrap"><b class="disp" style="font-size:16px;color:var(--fg)">${SITE_NAME}</b><span>약국 정보 출처: 국립중앙의료원 전국 약국 정보 (공공데이터포털), 매일 갱신</span><span>운영시간은 약국 사정으로 바뀔 수 있어요. 방문 전에 전화로 확인하세요.</span><span><a href="/pharmacy/">전국 지역별 약국</a> · <a href="${HOL_PATH}">공휴일 약국</a> · <a href="/about/">사이트 소개·문의</a> · <a href="/privacy/">개인정보처리방침</a></span></div></footer>
 ${hasNow ? `<script>${NOW_JS}</script>` : ""}
 </body>
 </html>
@@ -175,7 +176,7 @@ ${allDay.length ? `<ul class="mini">${allDay.map(p => miniRow(p, `${p.dong} · 2
 ${late.length ? `<ul class="mini">${late.slice(0, 60).map(p => miniRow(p, `${p.dong} · ${p.full ? "24시간" : clock(p.close) + "까지"}`)).join("")}</ul>` : `<p>밤 10시 넘어서까지 여는 약국이 없어요. 가까운 지역도 확인해 보세요.</p>`}
 <h2>${esc(name)} 일요일에 여는 약국</h2>
 ${sun.length ? `<ul class="mini">${sun.slice(0, 80).map(p => miniRow(p, `${p.dong} · 일 ${range(p.h[6])}`)).join("")}</ul>${sun.length > 80 ? `<p class="lead">외 ${sun.length - 80}곳은 아래 동네별 목록에 있어요.</p>` : ""}` : `<p>일요일 영업 정보가 있는 약국이 없어요.</p>`}
-<h2>${esc(name)} 공휴일에 여는 약국</h2>
+<h2 id="hol">${esc(name)} 공휴일에 여는 약국</h2>
 ${hol.length ? `<ul class="mini">${hol.slice(0, 80).map(p => miniRow(p, `${p.dong} · 공휴일 ${range(p.h[7])}`)).join("")}</ul>${hol.length > 80 ? `<p class="lead">외 ${hol.length - 80}곳은 아래 동네별 목록에 있어요.</p>` : ""}` : `<p>공휴일 영업 정보가 있는 약국이 없어요.</p>`}
 ${always.length ? `<h2>${esc(name)} 연중무휴 약국</h2><ul class="mini">${always.slice(0, 60).map(p => miniRow(p, p.dong)).join("")}</ul>` : ""}
 <h2>동네별 전체 약국</h2>
@@ -210,6 +211,93 @@ ${SIDO_ORDER.filter(s => bySido.has(s)).map(s => { const { gus, list } = bySido.
     return `<h2><a href="${esc(urlPath(s))}">${esc(s)}</a> <small style="font-size:15px;color:var(--muted)">${list.length}곳</small></h2>${gus.length ? `<ul class="grid">${gus.map(([g]) => `<li><a href="${esc(urlPath(s, g))}">${esc(g)}</a></li>`).join("")}</ul>` : ""}`; }).join("\n")}`;
   const title = `전국 지역별 응급약국 · 24시 약국 · 심야약국 | ${SITE_NAME}`, desc = "서울, 경기, 부산 등 전국 시·군·구별로 응급약국, 24시 약국, 밤늦게·일요일·공휴일에 문 여는 약국과 영업시간을 확인하세요.";
   return { path, title, desc, html: page({ path, title, desc, crumbs: [[SITE_NAME, "/"], ["지역별", path]], body, ad: true }) };
+}
+
+// ---- Holidays -------------------------------------------------------------------------------------
+// The data has one "공휴일" schedule per pharmacy (dutyTime8), so every holiday page uses those hours.
+// Dates: 2026/2027 월력요항 (우주항공청). Keep each holiday's slug stable so its address keeps its search history; just update the dates.
+const HOLIDAYS = [
+  { slug: "성탄절", name: "성탄절", alt: "크리스마스", days: ["2026-12-25"], short: "2026년 12월 25일", when: "2026년 12월 25일(금)",
+    note: "크리스마스에는 동네 병원과 소아과가 대부분 쉬어서, 아이가 열이 나거나 다쳤을 때 약국부터 찾게 돼요. 금요일이라 주말까지 사흘 연휴가 이어지니, 상비약은 미리 챙겨 두는 게 좋아요. 밤이나 휴일에 아이를 진료하는 달빛어린이병원도 함께 알아 두세요." },
+  { slug: "신정", name: "신정", alt: "새해 첫날 1월 1일", days: ["2027-01-01"], short: "2027년 1월 1일", when: "2027년 1월 1일(금)",
+    note: "새해 첫날은 연말 모임 뒤 소화제나 숙취해소제, 감기약을 찾는 분이 많은 날이에요. 12월 31일 밤부터 문 닫는 약국이 많으니, 늦게까지 여는 곳을 미리 확인해 두세요." },
+  { slug: "설날", name: "설 연휴", alt: "설날 명절", days: ["2027-02-06", "2027-02-07", "2027-02-08", "2027-02-09"], short: "2027년 2월 6일~9일", when: "2027년 2월 6일(토)~9일(화), 9일은 대체공휴일",
+    note: "설 연휴에는 고향이나 여행지에서 약국을 찾게 되는 일이 많아요. 내려가기 전에 가는 지역의 공휴일 약국을 아래에서 확인해 두세요. 설 당일(7일 일요일)에는 쉬는 약국이 많으니 전화로 꼭 확인하세요." },
+];
+const HOL_PATH = urlPath("공휴일");
+const kstToday = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+const faqLD = qa => ({ "@type": "FAQPage", mainEntity: qa.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) });
+
+function holidaySidoBlocks(bySido) {
+  return SIDO_ORDER.filter(s => bySido.has(s)).map(s => {
+    const { list, gus } = bySido.get(s), hol = list.filter(p => p.hol);
+    const latest = hol.map(p => ({ p, t: span(p.h[7]) })).sort((a, b) => b.t[1] - a.t[1] || a.p.n.localeCompare(b.p.n, "ko")).slice(0, 8);
+    const where = p => p.gu ? urlPath(s, p.gu) + "#" + anchor(p) : urlPath(s) + "#" + anchor(p);
+    const links = gus.length ? `<ul class="grid">${gus.map(([g, l]) => `<li><a href="${esc(urlPath(s, g))}#hol">${esc(g)} <small>공휴일 ${l.filter(p => p.hol).length}곳</small></a></li>`).join("")}</ul>` : `<p><a href="${esc(urlPath(s))}#hol">${esc(s)} 공휴일 약국 전체 보기</a></p>`;
+    return `<h2>${esc(s)} 공휴일 약국 <small style="font-size:15px;color:var(--muted)">${hol.length}곳</small></h2>
+${latest.length ? `<h3>${esc(s)}에서 공휴일에 늦게까지 여는 곳</h3><ul class="mini">${latest.map(({ p }) => miniRow(p, `${[p.gu, p.dong === "기타" ? "" : p.dong].filter(Boolean).join(" ")} · ${range(p.h[7])}`, where(p))).join("")}</ul>` : ""}
+${links}`;
+  }).join("\n");
+}
+
+function holidayPage(h, bySido, total, updated) {
+  const path = urlPath("공휴일", h.slug), past = h.days[h.days.length - 1] < kstToday();
+  const title = `${h.name} 문 여는 약국 · ${h.alt} 약국 (${h.short}) | ${SITE_NAME}`;
+  const desc = `${h.when} ${h.name}에 문 여는 약국 찾기. 전국 약국 중 공휴일 영업시간이 있는 약국 ${total.toLocaleString("ko-KR")}곳을 시·도, 시·군·구별로 정리했어요. 늦게까지 여는 곳과 지금 문 연 약국을 확인하세요.`;
+  const weekend = h.days.some(d => [0, 6].includes(new Date(d + "T12:00:00+09:00").getUTCDay()));
+  const qa = [
+    [`${h.name}에도 약국이 문을 여나요?`, `네. 공휴일에 문 여는 약국이 지역마다 있어요. 전국 약국 중 ${total.toLocaleString("ko-KR")}곳이 공휴일 영업시간을 등록해 두었어요. 아래에서 시·군·구를 골라 확인하세요.`],
+    [`${h.name} 약국 영업시간은 어떻게 확인하나요?`, `약국이 국립중앙의료원에 신고한 공휴일 영업시간을 보여드려요. 명절이나 연휴에는 약국 사정으로 바뀔 수 있으니 가기 전에 전화로 꼭 확인하세요.`],
+    [`근처에 문 연 약국이 없으면 어떻게 하나요?`, `편의점에서 해열진통제, 감기약, 소화제, 파스 같은 안전상비의약품을 살 수 있어요. 응급 상황이면 119에 전화하세요.`],
+  ];
+  const body = `<h1>${esc(h.name)} 문 여는 약국 · ${esc(h.alt)} 약국</h1>
+<p class="lead">${esc(h.when)}. ${esc(h.name)}에 문 여는 약국을 지역별로 모았어요. 약국이 신고한 공휴일 영업시간 기준이에요. (데이터 기준 ${updated})</p>
+<p>${esc(h.note)}</p>
+${past ? `<p class="lead"><b>올해 ${esc(h.name)}은 지났어요.</b> 다음 ${esc(h.name)} 날짜가 정해지면 바로 바꿔 둘게요. 공휴일 영업시간은 다음 공휴일에도 그대로 참고할 수 있어요.</p>` : ""}
+${weekend ? `<p>연휴 중 토요일·일요일에는 약국마다 토·일 영업시간과 공휴일 영업시간이 다를 수 있어요. 지역 페이지에서 요일별 시간도 함께 확인하세요.</p>` : ""}
+<div class="stats"><div><b>${total.toLocaleString("ko-KR")}곳</b><span>전국 공휴일 영업 약국</span></div><div><b>${h.days.length}일</b><span>${esc(h.name)} 쉬는 날</span></div></div>
+<div class="cta"><a class="btn" href="/">내 주변 문 연 약국 지도로 찾기</a><a class="btn soft" href="${HOL_PATH}">다른 공휴일 보기</a></div>
+${holidaySidoBlocks(bySido)}
+<h2>자주 묻는 질문</h2>
+${qa.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("\n")}`;
+  const crumbs = [[SITE_NAME, "/"], ["공휴일 약국", HOL_PATH], [h.name, path]];
+  return { path, title, desc, html: page({ path, title, desc, crumbs, body, ld: [faqLD(qa)], ad: true }) };
+}
+
+function holidayIndexPage(bySido, total, updated) {
+  const path = HOL_PATH, today = kstToday();
+  const title = `공휴일 약국 · 명절·연휴에 문 여는 약국 찾기 | ${SITE_NAME}`;
+  const desc = `공휴일, 명절, 연휴에 문 여는 약국 찾기. 전국 약국 ${total.toLocaleString("ko-KR")}곳의 공휴일 영업시간을 시·도, 시·군·구별로 정리했어요. 성탄절, 신정, 설 연휴 약국도 확인하세요.`;
+  const next = HOLIDAYS.filter(h => h.days[h.days.length - 1] >= today);
+  const body = `<h1>공휴일 약국 · 명절·연휴에 문 여는 약국</h1>
+<p class="lead">빨간 날에 문 여는 약국을 지역별로 모았어요. 전국 약국 중 ${total.toLocaleString("ko-KR")}곳이 공휴일 영업시간을 신고했어요. (데이터 기준 ${updated})</p>
+<h2>다가오는 공휴일</h2>
+<ul class="mini">${(next.length ? next : HOLIDAYS).map(h => `<li><a href="${esc(urlPath("공휴일", h.slug))}">${esc(h.name)} 문 여는 약국</a><span>${esc(h.when)}</span></li>`).join("")}</ul>
+${holidaySidoBlocks(bySido)}`;
+  return { path, title, desc, html: page({ path, title, desc, crumbs: [[SITE_NAME, "/"], ["공휴일 약국", path]], body, ad: true }) };
+}
+
+function aboutPage(count, updated) {
+  const path = "/about/";
+  const title = `사이트 소개·문의 | ${SITE_NAME}`, desc = `${SITE_NAME}는 밤늦게, 주말, 공휴일에 문 연 약국을 찾는 무료 사이트예요. 데이터 출처와 갱신 방식, 문의 방법을 안내해요.`;
+  const body = `<h1>${SITE_NAME} 소개</h1>
+<p class="lead">${SITE_NAME}(${esc(SITE_URL.replace(/^https?:\/\//, ""))})는 밤늦게, 주말, 공휴일에 문 연 약국을 휴대폰에서 빠르게 찾을 수 있게 만든 무료 사이트예요. 회원가입 없이 바로 쓸 수 있어요.</p>
+<h2>무엇을 할 수 있나요</h2>
+<ul>
+<li>내 위치나 동 이름으로 지금 영업 중인 약국을 가까운 순서로 찾기</li>
+<li>심야(밤 10시 이후), 24시간, 일요일, 공휴일, 연중무휴 약국만 골라 보기</li>
+<li>날짜와 시간을 바꿔서 그때 여는 약국 미리 확인하기</li>
+<li>전화 걸기, 카카오맵·네이버지도 길 안내로 바로 연결</li>
+<li><a href="/pharmacy/">시·군·구별 약국 목록</a>과 <a href="${HOL_PATH}">공휴일 약국</a> 페이지</li>
+</ul>
+<h2>약국 정보는 어디서 오나요</h2>
+<p>국립중앙의료원이 공공데이터포털에 공개하는 ‘전국 약국 정보’를 매일 새벽 3시에 받아와요. 지금 약국 ${count.toLocaleString("ko-KR")}곳의 요일별·공휴일 영업시간과 위치가 들어 있어요. (데이터 기준 ${updated})</p>
+<p>영업시간은 약국이 신고한 정보라서, 약국 사정으로 바뀌었는데 아직 반영되지 않았을 수 있어요. 가기 전에 전화로 확인해 주세요.</p>
+<h2>급할 때 도움 받을 곳</h2>
+<ul><li>응급 상황: 119</li><li>보건복지상담센터: 129</li><li>약국이 모두 닫았을 때: 24시 편의점의 안전상비의약품(해열진통제, 감기약, 소화제, 파스)</li></ul>
+<h2>문의</h2>
+<p>${CONTACT ? `잘못된 영업시간 제보, 사이트 문의는 <a href="mailto:${esc(CONTACT)}">${esc(CONTACT)}</a>로 보내 주세요.` : "잘못된 영업시간은 해당 약국이나 관할 보건소에 알려 주시면 공공데이터에 반영돼요."}</p>`;
+  return { path, title, desc, html: page({ path, title, desc, crumbs: [["홈", "/"], ["사이트 소개", path]], body }) };
 }
 
 // ---- Build --------------------------------------------------------------------------------------
@@ -252,6 +340,9 @@ export async function renderPages() {
     if (!gus.length) pages.push(districtPage(s, "", list, full[s], updated)); // 세종: one page for the whole city
     else { pages.push(sidoPage(s, full[s], gus, list, updated)); for (const [g, l] of gus) pages.push(districtPage(s, g, l, full[s], updated)); }
   }
+  const holTotal = all.filter(p => p.hol).length;
+  pages.push(holidayIndexPage(bySido, holTotal, updated), ...HOLIDAYS.map(h => holidayPage(h, bySido, holTotal, updated)));
+  pages.push(aboutPage(all.length, updated));
   pages.push(privacyPage()); // AdSense review expects one; also says what the ads' cookies do
   return { pages, updated };
 }
@@ -285,7 +376,7 @@ export async function buildSeo() {
   await writeFile(new URL("sitemap.xml", pub), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(u => `<url><loc>${esc(SITE_URL + u)}</loc><lastmod>${lastmod(u)}</lastmod></url>`).join("\n")}\n</urlset>\n`);
 
   // RSS of the most recently changed pages (Naver Search Advisor → 요청 → RSS 제출 picks up new/changed pages from it).
-  const feed = pages.filter(p => p.path !== "/privacy/").map(p => ({ ...p, d: lastmod(p.path) }))
+  const feed = pages.filter(p => !["/privacy/", "/about/"].includes(p.path)).map(p => ({ ...p, d: lastmod(p.path) }))
     .sort((a, b) => b.d.localeCompare(a.d) || a.path.localeCompare(b.path)).slice(0, 100);
   const item = p => `<item><title>${esc(p.title.replace(/ \| [^|]+$/, ""))}</title><link>${esc(SITE_URL + p.path)}</link><guid isPermaLink="true">${esc(SITE_URL + p.path)}</guid><description>${esc(p.desc)}</description><pubDate>${rssDate(p.d)}</pubDate></item>`;
   await writeFile(new URL("rss.xml", pub), `<?xml version="1.0" encoding="UTF-8"?>
