@@ -7,11 +7,13 @@
 //   Each page's <lastmod> / RSS date is the day its content last changed, from seo/lastmod.json (kept by scripts/lastmod.mjs in the
 //   daily data workflow), so search engines can trust it instead of seeing every page "changed" every day.
 //   /pharmacy/공휴일/ and /pharmacy/공휴일/<성탄절|신정|설날>/   holiday pages (dates in HOLIDAYS below; add next year's when announced)
-//   /about/ (site intro + contact), /privacy/, and /ads.txt when ADSENSE_CLIENT is set; Kakao AdFit slots on region pages and the home page when ADFIT_UNIT is set
+//   /guide/ and /guide/<slug>/ (hand-written articles in scripts/guides.mjs), /faq/, /contact/
+//   /about/ (site intro), /privacy/, and /ads.txt when ADSENSE_CLIENT is set; Kakao AdFit slots on region pages and the home page when ADFIT_UNIT is set
 // Also fills the site-verification marker in public/index.html from NAVER_SITE_VERIFICATION* / GOOGLE_SITE_VERIFICATION*
 // (plus the AdSense script when ADSENSE_CLIENT is set).
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { GUIDES, SITE_FAQ } from "./guides.mjs";
 
 export const SITE_NAME = "심야약국";
 // The one public address. simya-yakguk.vercel.app and kpharmacy24.com redirect here (vercel.json / Vercel domain settings).
@@ -26,6 +28,8 @@ const ADFIT = /^DAN-[A-Za-z0-9]+$/.test((process.env.ADFIT_UNIT || "").trim()) ?
 const [ADFIT_W, ADFIT_H] = (/^(\d+)x(\d+)$/.exec((process.env.ADFIT_SIZE || "").trim()) || [, "320", "100"]).slice(1);
 export const AD_SLOT = ADFIT ? `<div class="ad" style="margin:28px auto;text-align:center;min-height:${ADFIT_H}px"><ins class="kakao_ad_area" style="display:none" data-ad-unit="${ADFIT}" data-ad-width="${ADFIT_W}" data-ad-height="${ADFIT_H}"></ins><script async src="https://t1.daumcdn.net/kas/static/ba.min.js"></script></div>` : "";
 const CONTACT = (process.env.CONTACT_EMAIL || "").trim();
+// Fallback contact channel when CONTACT_EMAIL is unset (the repository is public).
+const ISSUES_URL = "https://github.com/yeinhan/simya-yakguk/issues";
 // Preview builds (pull requests, other branches) tell search engines to stay away.
 const PREVIEW = process.env.VERCEL_ENV === "preview" || (!!process.env.CF_PAGES && process.env.CF_PAGES_BRANCH !== "main");
 
@@ -96,6 +100,9 @@ h1{font-size:clamp(26px,6vw,36px);line-height:1.3;margin:0 0 8px}h2{font-size:22
 .tag{display:inline-block;font-size:12.5px;padding:1px 9px;border-radius:10px;background:var(--accent-soft);color:var(--accent-ink);margin-left:6px;vertical-align:2px}.tag.night{background:var(--warn-soft);color:var(--warn)}.tag.off{background:var(--surface);color:var(--off)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:0;list-style:none}.grid a{display:block;padding:10px 14px;border-radius:14px;border:1px solid var(--line);text-decoration:none;color:var(--fg)}.grid small{color:var(--muted)}
 .toc{display:flex;gap:6px;flex-wrap:wrap;font-size:14px}.toc a{padding:3px 10px;border-radius:12px;background:var(--bg);text-decoration:none}
+.bar .nav{display:flex;justify-content:flex-start;gap:2px 16px;flex-wrap:wrap;font-size:15px;padding-block:0 8px}.nav a{color:var(--muted);text-decoration:none;padding:4px 0}.nav a:hover,.nav a[aria-current]{color:var(--accent-ink)}
+.note{background:var(--bg);border-radius:18px;padding:14px 16px;margin:18px 0;font-size:15px}.note p{margin:4px 0}.byline{font-size:14px;color:var(--muted);margin:0 0 14px}
+article.guide{max-width:680px}article.guide li{margin:4px 0}
 .foot{border-top:1px solid var(--line);margin-top:40px;font-size:13px;color:var(--muted)}.foot .wrap{padding-block:18px 28px;display:grid;gap:4px}`;
 const LOGO = `<svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="15" fill="var(--accent)"/><path d="M15 8.5v13M8.5 15h13" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/></svg>`;
 // Marks cards that are open right now (Korean time) and fills the "지금 영업 중" count; holidays are not known here, so weekdays use the weekday hours.
@@ -105,7 +112,9 @@ let n=0;document.querySelectorAll("[data-h]").forEach(c=>{const h=c.dataset.h.sp
 const s=c.querySelector(".now");if(s){s.className="tag "+(open?"":"off")+" now";s.textContent=open?"지금 영업 중":"지금은 닫힘";}if(open)n++;});
 const o=document.getElementById("openNow");if(o)o.textContent=n+"곳";})();`;
 
-function page({ path, title, desc, crumbs, body, ld, hasNow, ad }) {
+const NAV = [["지역별 약국", "/pharmacy/"], ["공휴일 약국", "/pharmacy/공휴일/"], ["이용 가이드", "/guide/"], ["자주 묻는 질문", "/faq/"], ["소개", "/about/"]];
+// noAds: pages without much of their own content (404, privacy, contact) carry no ad code at all.
+function page({ path, title, desc, crumbs, body, ld, hasNow, ad, noAds }) {
   const url = SITE_URL + path;
   const bc = { "@type": "BreadcrumbList", itemListElement: crumbs.map(([name, p], i) => ({ "@type": "ListItem", position: i + 1, name, item: SITE_URL + p })) };
   const graph = { "@context": "https://schema.org", "@graph": [bc, ...(ld || [])] };
@@ -125,17 +134,17 @@ function page({ path, title, desc, crumbs, body, ld, hasNow, ad }) {
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap"></noscript>
 <style>${CSS}</style>
-${ADSENSE_TAG}
+${noAds ? "" : ADSENSE_TAG}
 <script type="application/ld+json">${JSON.stringify(graph).replace(/</g, "\\u003c")}</script>
 </head>
 <body>
-<header class="bar"><div class="wrap"><a class="brand" href="/">${LOGO}${SITE_NAME}</a><a href="/" class="btn soft" style="min-height:42px;font-size:15px">내 주변 찾기</a></div></header>
+<header class="bar"><div class="wrap"><a class="brand" href="/">${LOGO}${SITE_NAME}</a><a href="/" class="btn soft" style="min-height:42px;font-size:15px">내 주변 찾기</a></div><nav class="wrap nav" aria-label="사이트 메뉴">${NAV.map(([n, h]) => `<a href="${esc(h)}"${decodeURIComponent(path).startsWith(h) && h !== "/" ? ' aria-current="page"' : ""}>${n}</a>`).join("")}</nav></header>
 <main class="wrap">
 <nav class="crumb" aria-label="현재 위치">${crumbs.map(([n, p], i) => i === crumbs.length - 1 ? esc(n) : `<a href="${esc(p)}">${esc(n)}</a> › `).join("")}</nav>
 ${body}
 ${ad ? AD_SLOT : ""}
 </main>
-<footer class="foot"><div class="wrap"><b class="disp" style="font-size:16px;color:var(--fg)">${SITE_NAME}</b><span>약국 정보 출처: 국립중앙의료원 전국 약국 정보 (공공데이터포털), 매일 갱신</span><span>운영시간은 약국 사정으로 바뀔 수 있어요. 방문 전에 전화로 확인하세요.</span><span><a href="/pharmacy/">전국 지역별 약국</a> · <a href="${HOL_PATH}">공휴일 약국</a> · <a href="/about/">사이트 소개·문의</a> · <a href="/privacy/">개인정보처리방침</a></span></div></footer>
+<footer class="foot"><div class="wrap"><b class="disp" style="font-size:16px;color:var(--fg)">${SITE_NAME}</b><span>약국 정보 출처: 국립중앙의료원 전국 약국 정보 (공공데이터포털), 매일 갱신</span><span>운영시간은 약국 사정으로 바뀔 수 있어요. 방문 전에 전화로 확인하세요.</span><span>이 사이트의 건강 정보는 일반적인 안내로, 의사·약사의 진료와 상담을 대신하지 않아요. 응급 상황이면 119에 전화하세요.</span><span><a href="/pharmacy/">전국 지역별 약국</a> · <a href="${HOL_PATH}">공휴일 약국</a> · <a href="/guide/">이용 가이드</a> · <a href="/faq/">자주 묻는 질문</a> · <a href="/about/">사이트 소개</a> · <a href="/contact/">문의하기</a> · <a href="/privacy/">개인정보처리방침</a></span></div></footer>
 ${hasNow ? `<script>${NOW_JS}</script>` : ""}
 </body>
 </html>
@@ -159,7 +168,24 @@ function card(p) {
 const miniRow = (p, right, href) => `<li><a href="${href || "#" + anchor(p)}">${esc(p.n)}</a><span>${esc(right)}</span></li>`;
 const appLink = (q, f) => "/?" + new URLSearchParams({ q, ...(f ? { f } : {}) }).toString();
 
-function districtPage(sido, gu, list, sidoFull, updated) {
+// A short, data-driven summary of what is different about this district at night and on weekends (not the same sentence on every page).
+function districtSummary(name, list, late, allDay, sun, hol) {
+  const pct = n => Math.round(n / list.length * 100);
+  const out = [];
+  if (allDay.length) out.push(`${name}에는 24시간 문을 여는 약국이 ${allDay.length}곳 있어요${allDay.length <= 3 ? ` (${allDay.map(p => `${p.n}, ${p.dong}`).join(" / ")})` : ""}.`);
+  const lateNoFull = late.filter(p => !p.full);
+  if (lateNoFull.length) { const p = lateNoFull[0]; out.push(`24시간 약국을 빼고 가장 늦게까지 여는 곳은 ${p.dong === "기타" ? "" : p.dong + " "}${p.n}, 신고된 마감 시각은 ${clock(p.close)}.`); }
+  else if (!allDay.length) out.push(`${name}에는 밤 10시 넘어서까지 여는 약국 정보가 없어요. 밤에는 가까운 시·군·구의 심야약국이나 편의점 상비약을 확인하세요.`);
+  const byDong = new Map(); late.forEach(p => p.dong !== "기타" && byDong.set(p.dong, (byDong.get(p.dong) || 0) + 1));
+  const top = [...byDong].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko"))[0];
+  if (top && late.length >= 3 && top[1] >= 2) out.push(`심야약국이 가장 많은 동네는 ${top[0]}(${top[1]}곳)이에요.`);
+  out.push(`전체 ${list.length}곳 중 일요일에 여는 약국은 ${sun.length}곳(${pct(sun.length)}%), 공휴일에 여는 약국은 ${hol.length}곳(${pct(hol.length)}%)이에요.`);
+  if (hol.length && hol.length < sun.length / 2) out.push(`일요일보다 공휴일에 쉬는 약국이 많으니, 명절·연휴에는 공휴일 목록을 따로 확인하세요.`);
+  return out.join(" ");
+}
+const GUIDE_BOX = `<div class="note"><p><b>급할 때 읽어 보세요</b></p><p><a href="/guide/밤에-문-연-약국-찾는-법/">밤에 문 연 약국 찾는 법</a> · <a href="/guide/밤에-아플-때-어디로/">밤에 아플 때 어디로 가야 할까</a> · <a href="/guide/편의점-상비약/">편의점 상비약 정리</a> · <a href="/guide/아이가-밤에-열날-때/">아이가 밤에 열날 때</a></p></div>`;
+
+function districtPage(sido, gu, list, sidoFull, updated, siblings = []) {
   const name = gu || sido, full = `${sido} ${gu}`.trim();
   const late = list.filter(p => p.late).sort((a, b) => b.close - a.close), allDay = list.filter(p => p.full), sun = list.filter(p => p.sun), hol = list.filter(p => p.hol), always = list.filter(p => p.always);
   const byDong = new Map(); list.forEach(p => (byDong.get(p.dong) || byDong.set(p.dong, []).get(p.dong)).push(p));
@@ -170,6 +196,7 @@ function districtPage(sido, gu, list, sidoFull, updated) {
   const q = `${sidoFull} ${gu}`.trim();
   const body = `<h1>${esc(name)} 응급약국 · 24시 약국 · 심야약국</h1>
 <p class="lead">급하게 약이 필요할 때 ${esc(full)}에서 문 연 약국을 찾아보세요. 약국 ${list.length}곳의 요일별 영업시간을 모아 24시간, 늦은 밤, 일요일, 공휴일에 여는 약국을 먼저 보여드려요. 응급 상황이면 119에 전화하세요. (데이터 기준 ${updated})</p>
+<p>${esc(districtSummary(name, list, late, allDay, sun, hol))}</p>
 <div class="stats"><div><b id="openNow">-</b><span>지금 영업 중</span></div><div><b>${allDay.length}곳</b><span>24시간 영업</span></div><div><b>${late.length}곳</b><span>밤 10시 이후 영업</span></div><div><b>${sun.length}곳</b><span>일요일 영업</span></div><div><b>${hol.length}곳</b><span>공휴일 영업</span></div></div>
 <div class="cta"><a class="btn" href="${esc(appLink(q, "open"))}">지금 문 연 약국 지도로 보기</a><a class="btn soft" href="${esc(appLink(q, "late"))}">심야약국 지도로 보기</a></div>
 <h2>${esc(name)} 24시 약국</h2>
@@ -181,9 +208,11 @@ ${sun.length ? `<ul class="mini">${sun.slice(0, 80).map(p => miniRow(p, `${p.don
 <h2 id="hol">${esc(name)} 공휴일에 여는 약국</h2>
 ${hol.length ? `<ul class="mini">${hol.slice(0, 80).map(p => miniRow(p, `${p.dong} · 공휴일 ${range(p.h[7])}`)).join("")}</ul>${hol.length > 80 ? `<p class="lead">외 ${hol.length - 80}곳은 아래 동네별 목록에 있어요.</p>` : ""}` : `<p>공휴일 영업 정보가 있는 약국이 없어요.</p>`}
 ${always.length ? `<h2>${esc(name)} 연중무휴 약국</h2><ul class="mini">${always.slice(0, 60).map(p => miniRow(p, p.dong)).join("")}</ul>` : ""}
+${GUIDE_BOX}
 <h2>동네별 전체 약국</h2>
 <nav class="toc" aria-label="동네 바로가기">${dongs.map((d, i) => `<a href="#d${i}">${esc(d)}</a>`).join("")}</nav>
-${dongs.map((d, i) => `<h3 id="d${i}">${esc(name)} ${esc(d)} 약국</h3><div class="cards">${byDong.get(d).map(card).join("")}</div>`).join("\n")}`;
+${dongs.map((d, i) => `<h3 id="d${i}">${esc(name)} ${esc(d)} 약국</h3><div class="cards">${byDong.get(d).map(card).join("")}</div>`).join("\n")}
+${siblings.length ? `<h2>${esc(sido)}의 다른 지역</h2><ul class="grid">${siblings.map(([g, l]) => `<li><a href="${esc(urlPath(sido, g))}">${esc(g)} <small>심야 ${l.filter(p => p.late).length}곳</small></a></li>`).join("")}</ul>` : ""}`;
   const crumbs = [[SITE_NAME, "/"], ["지역별", urlPath()], [sido, urlPath(sido)], ...(gu ? [[gu, path]] : [])];
   const ld = [{ "@type": "ItemList", name: `${full} 심야약국`, itemListElement: late.slice(0, 30).map((p, i) => ({ "@type": "ListItem", position: i + 1, item: pharmacyLD(p) })) }];
   return { path, title, desc, html: page({ path, title, desc, crumbs, body, ld, hasNow: true, ad: true }) };
@@ -281,7 +310,7 @@ ${holidaySidoBlocks(bySido)}`;
 
 function aboutPage(count, updated) {
   const path = "/about/";
-  const title = `사이트 소개·문의 | ${SITE_NAME}`, desc = `${SITE_NAME}는 밤늦게, 주말, 공휴일에 문 연 약국을 찾는 무료 사이트예요. 데이터 출처와 갱신 방식, 문의 방법을 안내해요.`;
+  const title = `사이트 소개 | ${SITE_NAME}`, desc = `${SITE_NAME}는 밤늦게, 주말, 공휴일에 문 연 약국을 찾는 무료 사이트예요. 데이터 출처와 갱신 방식, 문의 방법을 안내해요.`;
   const body = `<h1>${SITE_NAME} 소개</h1>
 <p class="lead">${SITE_NAME}(${esc(SITE_URL.replace(/^https?:\/\//, ""))})는 밤늦게, 주말, 공휴일에 문 연 약국을 휴대폰에서 빠르게 찾을 수 있게 만든 무료 사이트예요. 회원가입 없이 바로 쓸 수 있어요.</p>
 <h2>무엇을 할 수 있나요</h2>
@@ -297,9 +326,69 @@ function aboutPage(count, updated) {
 <p>영업시간은 약국이 신고한 정보라서, 약국 사정으로 바뀌었는데 아직 반영되지 않았을 수 있어요. 가기 전에 전화로 확인해 주세요.</p>
 <h2>급할 때 도움 받을 곳</h2>
 <ul><li>응급 상황: 119</li><li>보건복지상담센터: 129</li><li>약국이 모두 닫았을 때: 24시 편의점의 안전상비의약품(해열진통제, 감기약, 소화제, 파스)</li></ul>
+<h2>누가 운영하나요</h2>
+<p>개인이 만들고 운영하는 사이트예요. 정부나 약사회, 특정 약국과는 관계가 없고, 어느 약국에서도 돈을 받고 순서를 바꾸지 않아요. 운영비는 지역·가이드 페이지 아래쪽 광고로 충당해요.</p>
+<h2>건강 정보에 대해</h2>
+<p><a href="/guide/">이용 가이드</a>의 글은 밤이나 휴일에 약국·병원을 찾을 때 도움이 되도록 공개된 공공 안내를 바탕으로 정리한 일반 정보예요. 진단이나 치료를 대신하지 않아요.</p>
 <h2>문의</h2>
-<p>${CONTACT ? `잘못된 영업시간 제보, 사이트 문의는 <a href="mailto:${esc(CONTACT)}">${esc(CONTACT)}</a>로 보내 주세요.` : "잘못된 영업시간은 해당 약국이나 관할 보건소에 알려 주시면 공공데이터에 반영돼요."}</p>`;
-  return { path, title, desc, html: page({ path, title, desc, crumbs: [["홈", "/"], ["사이트 소개", path]], body }) };
+<p>잘못된 정보 제보, 사이트 문의는 <a href="/contact/">문의하기</a>${CONTACT ? ` 또는 <a href="mailto:${esc(CONTACT)}">${esc(CONTACT)}</a>` : ""}로 보내 주세요.</p>`;
+  return { path, title, desc, html: page({ path, title, desc, crumbs: [["홈", "/"], ["사이트 소개", path]], body, noAds: true }) };
+}
+
+// ---- Guides, FAQ, contact -------------------------------------------------------------------------
+const GUIDE_PATH = "/guide/";
+const guidePath = g => GUIDE_PATH + encodeURIComponent(g.slug) + "/";
+const korDate = d => { const [y, m, dd] = d.split("-"); return `${y}년 ${+m}월 ${+dd}일`; };
+const DISCLAIMER = `<div class="note"><p>이 글은 밤이나 휴일에 약국·병원을 찾을 때 도움이 되도록 공개된 안내를 바탕으로 정리한 일반 정보예요. 진단이나 치료를 대신하지 않으니, 증상이 걱정되면 의사·약사와 상담하고 응급 상황이면 119에 전화하세요.</p></div>`;
+
+function guidePage(g) {
+  const path = guidePath(g), title = `${g.title} | ${SITE_NAME}`;
+  const others = GUIDES.filter(x => x !== g);
+  const body = `<article class="guide">
+<h1>${esc(g.title)}</h1>
+<p class="byline">${SITE_NAME} 이용 가이드 · ${korDate(g.updated)} 업데이트</p>
+${g.body.trim()}
+${g.qa?.length ? `<h2>자주 묻는 질문</h2>\n${g.qa.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("\n")}` : ""}
+${DISCLAIMER}
+<div class="cta"><a class="btn" href="/">지금 문 연 약국 찾기</a><a class="btn soft" href="/pharmacy/">지역별 약국 보기</a></div>
+</article>
+<h2>다른 가이드</h2>
+<ul class="mini">${others.map(x => `<li><a href="${esc(guidePath(x))}">${esc(x.short)}</a></li>`).join("")}</ul>`;
+  const ld = [{ "@type": "Article", headline: g.title, description: g.desc, dateModified: g.updated, inLanguage: "ko-KR", mainEntityOfPage: SITE_URL + path, publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL + "/" } }, ...(g.qa?.length ? [faqLD(g.qa)] : [])];
+  return { path, title, desc: g.desc, html: page({ path, title, desc: g.desc, crumbs: [[SITE_NAME, "/"], ["이용 가이드", GUIDE_PATH], [g.short, path]], body, ld, ad: true }) };
+}
+
+function guideIndexPage() {
+  const path = GUIDE_PATH, title = `약국 이용 가이드 · 밤·휴일에 아플 때 | ${SITE_NAME}`;
+  const desc = "밤이나 휴일에 약이 필요할 때 알아 두면 좋은 것: 문 연 약국 찾는 법, 공공심야약국, 편의점 상비약, 아이가 밤에 열날 때, 처방약 받기, 연휴 상비약까지.";
+  const body = `<h1>약국 이용 가이드</h1>
+<p class="lead">밤늦게, 주말, 공휴일에 갑자기 약이 필요할 때 알아 두면 좋은 내용을 모았어요.</p>
+<div class="cards">${GUIDES.map(g => `<article class="card"><h4><a href="${esc(guidePath(g))}">${esc(g.title)}</a></h4><p>${esc(g.desc)}</p></article>`).join("")}</div>`;
+  return { path, title, desc, html: page({ path, title, desc, crumbs: [[SITE_NAME, "/"], ["이용 가이드", path]], body, ad: true }) };
+}
+
+function faqPage() {
+  const path = "/faq/", title = `자주 묻는 질문 | ${SITE_NAME}`, desc = `${SITE_NAME} 사용법, 영업시간 정보의 출처와 정확도, 위치 정보, 약국이 모두 닫았을 때 대안까지 자주 묻는 질문을 모았어요.`;
+  const body = `<h1>자주 묻는 질문</h1>
+<p class="lead">${SITE_NAME}를 쓰면서 많이 궁금해하시는 것들이에요. 더 궁금한 점은 <a href="/contact/">문의하기</a>로 알려 주세요.</p>
+${SITE_FAQ.map(([q, a]) => `<h2>${esc(q)}</h2><p>${esc(a)}</p>`).join("\n")}
+<h2>더 읽어 보기</h2>
+<ul class="mini">${GUIDES.map(g => `<li><a href="${esc(guidePath(g))}">${esc(g.short)}</a></li>`).join("")}</ul>`;
+  return { path, title, desc, html: page({ path, title, desc, crumbs: [[SITE_NAME, "/"], ["자주 묻는 질문", path]], body, ld: [faqLD(SITE_FAQ)], ad: true }) };
+}
+
+function contactPage() {
+  const path = "/contact/", title = `문의하기 | ${SITE_NAME}`, desc = `${SITE_NAME} 사이트 오류, 제안, 제휴 문의 방법과 약국 영업시간 정보를 고치는 방법을 안내해요.`;
+  const channel = CONTACT ? `이메일 <a href="mailto:${esc(CONTACT)}">${esc(CONTACT)}</a>` : `<a href="${ISSUES_URL}" rel="noopener">사이트 문의 게시판(GitHub)</a>`;
+  const body = `<h1>문의하기</h1>
+<p class="lead">사이트 오류, 고쳤으면 하는 점, 제휴 문의는 ${channel}으로 보내 주세요. 보통 2~3일 안에 답장드려요.</p>
+<h2>보내 주시면 도움이 되는 내용</h2>
+<ul><li>문제가 생긴 페이지 주소</li><li>사용한 기기와 브라우저 (예: 아이폰 사파리, 갤럭시 삼성 인터넷)</li><li>무엇을 했을 때 어떤 문제가 생겼는지</li></ul>
+<h2>약국 영업시간이 실제와 달라요</h2>
+<p>이 사이트의 약국 정보는 국립중앙의료원 공공데이터를 그대로 보여드려요. 영업시간이 바뀐 약국은 해당 약국이나 관할 보건소에 알려 주시면 공공데이터가 고쳐지고, 다음 날 새벽 이 사이트에도 반영돼요. 저희에게 알려 주셔도 확인해서 안내해 드릴게요.</p>
+<h2>의료 상담은 받지 않아요</h2>
+<p>증상이나 약에 관한 질문은 가까운 약국 약사나 의사에게 물어봐 주세요. 응급 상황이면 119, 보건복지 상담은 129로 전화하세요.</p>`;
+  return { path, title, desc, html: page({ path, title, desc, crumbs: [["홈", "/"], ["문의하기", path]], body, noAds: true }) };
 }
 
 // ---- Build --------------------------------------------------------------------------------------
@@ -314,12 +403,12 @@ function privacyPage() {
 <h2>접속 기록</h2>
 <p>사이트를 전달하는 호스팅 업체(Cloudflare)가 보안과 장애 대응을 위해 IP 주소, 접속 시간, 브라우저 정보 같은 기록을 자동으로 남길 수 있어요.</p>
 <h2>광고와 쿠키</h2>
-<p>이 사이트는 카카오 애드핏 등 광고 서비스의 광고를 보여줄 수 있어요. 광고 업체는 쿠키나 광고 식별자를 사용해 관심사에 맞는 광고를 보여줄 수 있어요. 자세한 내용은 <a href="https://www.kakao.com/policy/privacy" rel="noopener">카카오 개인정보처리방침</a>${ADSENSE ? `과 <a href="https://policies.google.com/technologies/ads?hl=ko" rel="noopener">Google 광고 정책</a>(맞춤 광고 끄기: <a href="https://adssettings.google.com" rel="noopener">Google 광고 설정</a>)` : ""}에서 볼 수 있고, 브라우저 설정에서 쿠키를 막을 수도 있어요.</p>
+<p>이 사이트는 ${ADSENSE ? "Google 애드센스 같은 " : ""}광고 서비스의 광고를 보여줄 수 있어요. ${ADSENSE ? "Google을 포함한 제3자 광고 업체는 쿠키를 사용해 이용자가 이 사이트나 다른 사이트를 방문한 기록을 바탕으로 광고를 보여줄 수 있어요. " : "광고 업체는 쿠키나 광고 식별자를 사용해 관심사에 맞는 광고를 보여줄 수 있어요. "}${ADSENSE ? `자세한 내용은 <a href="https://policies.google.com/technologies/ads?hl=ko" rel="noopener">Google 광고 정책</a>에서 볼 수 있고, <a href="https://adssettings.google.com" rel="noopener">Google 광고 설정</a>에서 맞춤 광고를 끌 수 있어요. ` : ""}브라우저 설정에서 쿠키를 막을 수도 있어요.</p>
 <h2>문의</h2>
-<p>${CONTACT ? `개인정보 관련 문의: <a href="mailto:${esc(CONTACT)}">${esc(CONTACT)}</a>` : "개인정보 관련 문의는 사이트 운영자에게 해 주세요."}</p>
+<p>${CONTACT ? `개인정보 관련 문의: <a href="mailto:${esc(CONTACT)}">${esc(CONTACT)}</a>` : `개인정보 관련 문의는 <a href="/contact/">문의하기</a>를 이용해 주세요.`}</p>
 <p>시행일: 2026년 10월 29일</p>`;
   const title = `개인정보처리방침 | ${SITE_NAME}`, desc = `${SITE_NAME}의 개인정보 처리, 위치 정보, 광고 쿠키 안내`;
-  return { path, title, desc, html: page({ path, title, desc, crumbs: [["홈", "/"], ["개인정보처리방침", path]], body }) };
+  return { path, title, desc, html: page({ path, title, desc, crumbs: [["홈", "/"], ["개인정보처리방침", path]], body, noAds: true }) };
 }
 
 async function put(path, html) { const dir = new URL("." + decodeURIComponent(path), pub); await mkdir(dir, { recursive: true }); await writeFile(new URL("index.html", dir), html); }
@@ -340,11 +429,12 @@ export async function renderPages() {
   const pages = [indexPage(bySido, updated)];
   for (const [s, { list, gus }] of bySido) {
     if (!gus.length) pages.push(districtPage(s, "", list, full[s], updated)); // 세종: one page for the whole city
-    else { pages.push(sidoPage(s, full[s], gus, list, updated)); for (const [g, l] of gus) pages.push(districtPage(s, g, l, full[s], updated)); }
+    else { pages.push(sidoPage(s, full[s], gus, list, updated)); for (const [g, l] of gus) pages.push(districtPage(s, g, l, full[s], updated, gus.filter(([x]) => x !== g))); }
   }
   const holTotal = all.filter(p => p.hol).length;
   pages.push(holidayIndexPage(bySido, holTotal, updated), ...HOLIDAYS.map(h => holidayPage(h, bySido, holTotal, updated)));
-  pages.push(aboutPage(all.length, updated));
+  pages.push(guideIndexPage(), ...GUIDES.map(guidePage), faqPage());
+  pages.push(aboutPage(all.length, updated), contactPage());
   pages.push(privacyPage()); // AdSense review expects one; also says what the ads' cookies do
   return { pages, updated };
 }
@@ -366,6 +456,7 @@ export async function buildSeo() {
 
   // Not-found page. Cloudflare Pages serves it with a real 404; without it every unknown address would get the home page.
   const notFound = page({ path: "/404.html", title: `페이지를 찾을 수 없어요 | ${SITE_NAME}`, desc: "주소가 바뀌었거나 없는 페이지예요.", crumbs: [["홈", "/"], ["찾을 수 없음", "/404.html"]],
+    noAds: true,
     body: `<h1>페이지를 찾을 수 없어요</h1><p>주소가 바뀌었거나 없는 페이지예요.</p><p><a class="btn" href="/">내 주변 문 연 약국 찾기</a> <a class="btn soft" href="/pharmacy/">지역별 약국 보기</a></p>` });
   await writeFile(new URL("404.html", pub), notFound.replace(/<link rel="canonical"[^>]*>/, '<meta name="robots" content="noindex">'));
 
@@ -378,7 +469,7 @@ export async function buildSeo() {
   await writeFile(new URL("sitemap.xml", pub), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(u => `<url><loc>${esc(SITE_URL + u)}</loc><lastmod>${lastmod(u)}</lastmod></url>`).join("\n")}\n</urlset>\n`);
 
   // RSS of the most recently changed pages (Naver Search Advisor → 요청 → RSS 제출 picks up new/changed pages from it).
-  const feed = pages.filter(p => !["/privacy/", "/about/"].includes(p.path)).map(p => ({ ...p, d: lastmod(p.path) }))
+  const feed = pages.filter(p => !["/privacy/", "/about/", "/contact/", "/faq/"].includes(p.path)).map(p => ({ ...p, d: lastmod(p.path) }))
     .sort((a, b) => b.d.localeCompare(a.d) || a.path.localeCompare(b.path)).slice(0, 100);
   const item = p => `<item><title>${esc(p.title.replace(/ \| [^|]+$/, ""))}</title><link>${esc(SITE_URL + p.path)}</link><guid isPermaLink="true">${esc(SITE_URL + p.path)}</guid><description>${esc(p.desc)}</description><pubDate>${rssDate(p.d)}</pubDate></item>`;
   await writeFile(new URL("rss.xml", pub), `<?xml version="1.0" encoding="UTF-8"?>
@@ -392,7 +483,7 @@ export async function buildSeo() {
 ${feed.map(item).join("\n")}
 </channel></rss>
 `);
-  await writeFile(new URL("robots.txt", pub), PREVIEW ? "User-agent: *\nDisallow: /\n" : `User-agent: *\nAllow: /\nDisallow: /data/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
+  await writeFile(new URL("robots.txt", pub), PREVIEW ? "User-agent: *\nDisallow: /\n" : `# Everything is open to crawlers, including Google's ad crawlers (Mediapartners-Google, AdsBot-Google), which ignore "*" rules.\n# /data/ is the map's JSON: crawlable so Google can render the home page, kept out of search results by an X-Robots-Tag header.\nUser-agent: Mediapartners-Google\nAllow: /\n\nUser-agent: AdsBot-Google\nAllow: /\n\nUser-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 
   // Search Console / Search Advisor ownership tags (public values, set as Vercel / Cloudflare Pages environment variables).
   // One tag per registered address: values may be comma-separated, or split over NAVER_SITE_VERIFICATION2, ...3 and so on.
@@ -402,6 +493,7 @@ ${feed.map(item).join("\n")}
       .map(s => `<meta name="${n}" content="${esc(s)}">`)).concat(ADSENSE_TAG || []).join("\n");
   const indexUrl = new URL("index.html", pub), index = await readFile(indexUrl, "utf8");
   let out = index.replace(/<!-- site-verification -->[\s\S]*?<!-- \/site-verification -->/, `<!-- site-verification -->${tags ? "\n" + tags + "\n" : ""}<!-- /site-verification -->`);
+  out = out.replace(/<!-- guides -->[\s\S]*?<!-- \/guides -->/, `<!-- guides --><div class="chips">${GUIDES.map(g => `<a href="${esc(guidePath(g).slice(1))}">${esc(g.short)}</a>`).join("")}</div><!-- /guides -->`);
   out = out.replace(/<!-- ad-slot -->[\s\S]*?<!-- \/ad-slot -->/, `<!-- ad-slot -->${AD_SLOT}<!-- /ad-slot -->`);
   if (PREVIEW) out = out.replace("<!-- /site-verification -->", `<!-- /site-verification -->\n<meta name="robots" content="noindex">`);
   if (out !== index) await writeFile(indexUrl, out);
